@@ -1,0 +1,11 @@
+{
+    "sqltools.useNodeRuntime": true,
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "\\\\wsl.localhost\\Ubuntu\\home\\ly\\projects\\LMS\\web\\app\\db\\database.db",
+            "name": "LMS"
+        }
+    ]
+}
