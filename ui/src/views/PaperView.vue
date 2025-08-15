@@ -84,10 +84,21 @@ const handleCommit = () => {
   }
 }
 
-const handleOpenPaper = (paper: Paper) => {
-  if (paper.path) {
-    window.open(paper.path, '_blank')
-  }
+const handleOpenPaper = async (paper: Paper) => {
+
+  await api.get('/pdf',{
+    params:{
+      filename: paper.path
+    },
+    responseType: 'blob',
+    headers: {
+      'Accept': 'application/pdf'
+    }
+  }).then(res => {
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const pdfUrl = URL.createObjectURL(blob);
+      window.open(pdfUrl,'_blank')
+  })
 }
 
 const handleUpdate = (paper: Paper) => {
@@ -111,6 +122,7 @@ const handleDelete = async (id: number | undefined) => {
 }
 
 const tableData = ref<Paper[]>([])
+const nullText = ref('')
 const error = ref('')
 const handleSearch = async () => {
   await api
@@ -120,7 +132,10 @@ const handleSearch = async () => {
         grade: gradeSelect.value,
       },
     })
-    .then((res) => (tableData.value = res.data))
+    .then((res) => {
+      if(res.data?.length === 0) nullText.value = '無資料'
+      tableData.value = res.data
+    })
     .catch((err) => (error.value = err))
 }
 
@@ -190,7 +205,7 @@ const dialog_memo_input = ref('')
       </table>
     </div>
     <div v-else>
-      <h3 class="font-bold text-xl text-center">无查询结果</h3>
+      <h3 class="font-bold text-xl text-center">{{ nullText }}</h3>
     </div>
   </div>
 
