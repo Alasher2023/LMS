@@ -1,0 +1,39 @@
+
+
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# General
+.DS_Store
+*.swo
+*.swp
+*.sw?
+
+# Editor specific
+.idea/
+.vscode/
+
+# UI - /ui
+/ui/node_modules
+/ui/dist
+/ui/dist-ssr
+/ui/coverage
+/ui/*.local
+/ui/cypress/videos/
+/ui/cypress/screenshots/
+/ui/*.tsbuildinfo
+
+# Web - /web
+/web/venv
+/web/__pycache__/
+/web/**/*.pyc
+/web/app/db/database.db
+/web/alembic.ini

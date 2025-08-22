@@ -6,6 +6,9 @@ class Paper(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     subject: str
     grade: str
+    author: str | None = None
+    type: str | None = None
+    status: str | None = None
     title: str
     path: str
     memo: str | None = None

@@ -39,6 +39,9 @@ def update_paper(
     updateTarget.subject = paper.subject
     updateTarget.grade = paper.grade
     updateTarget.memo = paper.memo
+    updateTarget.status = paper.status
+    updateTarget.type = paper.type
+    updateTarget.author = paper.author
     
     session.add(updateTarget)
     session.commit()

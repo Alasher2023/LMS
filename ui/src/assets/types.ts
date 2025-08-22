@@ -5,6 +5,9 @@ export type Select = {
 
 export type Paper = {
   id?: number
+  author: string
+  type: string
+  status: string
   subject: string
   grade: string
   title: string

@@ -27,6 +27,64 @@ const gradeOptions = ref<Select[]>([
     label: '二年级',
   },
 ])
+const authorOptions = ref<Select[]>([
+  {
+    value: '1',
+    label: 'Sapix',
+  },
+  {
+    value: '2',
+    label: '浜学園',
+  },
+  {
+    value: '3',
+    label: 'KUMON',
+  },
+])
+const statusOptions = ref<Select[]>([
+  {
+    value: '1',
+    label: '未开始',
+  },
+  {
+    value: '2',
+    label: '进行中',
+  },
+  {
+    value: '3',
+    label: '已完成',
+  },
+  {
+    value: '4',
+    label: '未复习',
+  },
+  {
+    value: '5',
+    label: '复习中',
+  },
+])
+const typeOptions = ref<Select[]>([
+  {
+    value: '1',
+    label: '测验',
+  },
+  {
+    value: '2',
+    label: '练习题',
+  },
+  {
+    value: '3',
+    label: '考试',
+  },
+  {
+    value: '4',
+    label: '讲义',
+  },
+  {
+    value: '5',
+    label: '其他',
+  }
+])
 
 const handleOpenDailog = () => {
   const width = document.body.clientWidth + 'px'
@@ -56,6 +114,9 @@ const handleCommit = () => {
     id: dialog_id_input.value,
     subject: dialog_subject_select.value,
     grade: dialog_grade_select.value,
+    type: dialog_type_select.value,
+    status: dialog_status_select.value,
+    author: dialog_author_select.value,
     title: dialog_title_input.value,
     path: dialog_path_input.value,
     memo: dialog_memo_input.value,
@@ -97,7 +158,14 @@ const handleOpenPaper = async (paper: Paper) => {
   }).then(res => {
       const blob = new Blob([res.data], { type: 'application/pdf' });
       const pdfUrl = URL.createObjectURL(blob);
-      window.open(pdfUrl,'_blank')
+
+      const el = document.createElement('a')
+      el.href = pdfUrl
+      // el.target = '_blank'
+      el.click()
+
+
+      // window.open(pdfUrl,'_blank')
   })
 }
 
@@ -108,6 +176,9 @@ const handleUpdate = (paper: Paper) => {
   dialog_title_input.value = paper.title
   dialog_path_input.value = paper.path
   dialog_memo_input.value = paper.memo!
+  dialog_status_select.value = paper.status
+  dialog_type_select.value = paper.type
+  dialog_author_select.value = paper.author
   handleOpenDailog()
 }
 
@@ -146,6 +217,10 @@ const dialog_subject_select = ref('')
 const dialog_title_input = ref('')
 const dialog_path_input = ref('')
 const dialog_memo_input = ref('')
+const dialog_status_select = ref('')
+const dialog_type_select = ref('')
+const dialog_author_select = ref('')
+
 </script>
 
 <template>
@@ -172,9 +247,12 @@ const dialog_memo_input = ref('')
       <table class="table table-zebra table-xs">
         <thead>
           <tr>
-            <th class="w-auto md:min-w-64">试卷名</th>
+            <th class="w-auto md:min-w-64">标题</th>
+            <th class="w-16 hidden md:table-cell">机构</th>
             <th class="w-16 hidden md:table-cell">科目</th>
-            <th class="w-16 hidden md:table-cell">年级</th>
+            <th class="w-16 hidden md:table-cell">类型</th>
+            <th class="w-16 hidden md:table-cell">状态</th>
+            <!-- <th class="w-16 hidden md:table-cell">年级</th> -->
             <th class="w-56 text-center font-bold"></th>
           </tr>
         </thead>
@@ -182,11 +260,20 @@ const dialog_memo_input = ref('')
           <tr v-for="item in tableData" :key="item.id">
             <td>{{ item.title }}</td>
             <td class="hidden md:table-cell">
+              {{ authorOptions.find((x) => x.value == item.author)?.label }}
+            </td>
+            <td class="hidden md:table-cell">
               {{ subjectOptions.find((x) => x.value == item.subject)?.label }}
             </td>
             <td class="hidden md:table-cell">
-              {{ gradeOptions.find((x) => x.value == item.grade)?.label }}
+              {{ typeOptions.find((x) => x.value == item.type)?.label }}
             </td>
+            <td class="hidden md:table-cell">
+              {{ statusOptions.find((x) => x.value == item.status)?.label }}
+            </td>
+            <!-- <td class="hidden md:table-cell">
+              {{ gradeOptions.find((x) => x.value == item.grade)?.label }}
+            </td> -->
             <td>
               <div class="flex gap-4 justify-center">
                 <div class="badge badge-primary md:cursor-pointer" @click="handleOpenPaper(item)">
@@ -214,6 +301,14 @@ const dialog_memo_input = ref('')
       <fieldset class="fieldset border-base-300 rounded-box w-full p-4">
         <legend class="fieldset-legend">Paper details</legend>
 
+        <label class="label">机构</label>
+        <select-component
+          v-model="dialog_author_select"
+          :options="authorOptions"
+          class="md:w-full"
+          aria-required="true"
+        ></select-component>
+
         <label class="label">学科</label>
         <select-component
           v-model="dialog_subject_select"
@@ -230,7 +325,23 @@ const dialog_memo_input = ref('')
           aria-required="true"
         ></select-component>
 
-        <label class="label">书名</label>
+        <label class="label">类型</label>
+        <select-component
+          v-model="dialog_type_select"
+          :options="typeOptions"
+          class="md:w-full"
+          aria-required="true"
+        ></select-component>
+
+        <label class="label">状态</label>
+        <select-component
+          v-model="dialog_status_select"
+          :options="statusOptions"
+          class="md:w-full"
+          aria-required="true"
+        ></select-component>
+
+        <label class="label">标题</label>
         <input type="text" v-model="dialog_title_input" class="input md:w-full" placeholder="" />
 
         <label class="label">网盘地址</label>
