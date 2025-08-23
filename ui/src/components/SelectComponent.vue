@@ -11,12 +11,12 @@ const modelValue = defineModel<string | undefined>()
 </script>
 
 <template>
-  <select v-if="props.label === undefined" class="select" v-model="modelValue">
+  <select v-if="props.label === undefined" class="select md:select-sm" v-model="modelValue">
     <option v-for="option in props.options" :key="option.value" :value="option.value">
       {{ option.label }}
     </option>
   </select>
-  <label v-else class="select">
+  <label v-else class="select md:select-sm">
     <span class="label">{{ props.label }}</span>
     <select v-model="modelValue">
       <option v-for="option in props.options" :key="option.value" :value="option.value">

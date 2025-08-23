@@ -8,13 +8,28 @@ router = APIRouter(
 )
 @router.get("/")
 def get_paper(
+    author: str,
+    type: str,
+    status: str,
     subject: str,
     grade: str,
     session: SQLite_DB.SessionDep
 ) -> list[SQLite_DB.Paper]:
-    papers = session.exec(select(SQLite_DB.Paper)
-                          .where(SQLite_DB.Paper.subject == subject,
-                                 SQLite_DB.Paper.grade == grade)).all()
+    
+    query = select(SQLite_DB.Paper).where(
+        SQLite_DB.Paper.subject == subject,
+        SQLite_DB.Paper.grade == grade
+    )
+    
+    if author != '0':
+        query = query.where(SQLite_DB.Paper.author == author)
+    if type != '0':
+        query = query.where(SQLite_DB.Paper.type == type)
+    if status != '0':
+        query = query.where(SQLite_DB.Paper.status == status)
+    
+    papers = session.exec(query).all()
+    
     return papers
 
 @router.post("/")

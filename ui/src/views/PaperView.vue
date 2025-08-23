@@ -1,90 +1,90 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import type { Select, Paper } from '@/assets/types'
 import SelectComponent from '@/components/SelectComponent.vue'
 import api from '@/utils/api'
 
 const api_path = '/paper/'
-const subjectSelect = ref('1')
-const subjectOptions = ref<Select[]>([
-  {
-    value: '1',
-    label: '国语',
-  },
-  {
-    value: '2',
-    label: '算数',
-  },
-])
+
+// Search filters
+const subjectSelect = ref('2')
 const gradeSelect = ref('1')
-const gradeOptions = ref<Select[]>([
-  {
-    value: '1',
-    label: '一年级',
-  },
-  {
-    value: '2',
-    label: '二年级',
-  },
-])
-const authorOptions = ref<Select[]>([
-  {
-    value: '1',
-    label: 'Sapix',
-  },
-  {
-    value: '2',
-    label: '浜学園',
-  },
-  {
-    value: '3',
-    label: 'KUMON',
-  },
-])
-const statusOptions = ref<Select[]>([
-  {
-    value: '1',
-    label: '未开始',
-  },
-  {
-    value: '2',
-    label: '进行中',
-  },
-  {
-    value: '3',
-    label: '已完成',
-  },
-  {
-    value: '4',
-    label: '未复习',
-  },
-  {
-    value: '5',
-    label: '复习中',
-  },
-])
-const typeOptions = ref<Select[]>([
-  {
-    value: '1',
-    label: '测验',
-  },
-  {
-    value: '2',
-    label: '练习题',
-  },
-  {
-    value: '3',
-    label: '考试',
-  },
-  {
-    value: '4',
-    label: '讲义',
-  },
-  {
-    value: '5',
-    label: '其他',
-  }
-])
+const authorSelect = ref('0')
+const statusSelect = ref('0')
+const typeSelect = ref('0')
+
+// Static options for select components
+const subjectOptions: Select[] = [
+  { value: '1', label: '国语' },
+  { value: '2', label: '算数' },
+]
+const gradeOptions: Select[] = [
+  { value: '1', label: '一年级' },
+  { value: '2', label: '二年级' },
+]
+const authorOptions: Select[] = [
+  { value: '0', label: '全部' },
+  { value: '1', label: 'Sapix' },
+  { value: '2', label: '浜学園' },
+  { value: '3', label: 'KUMON' },
+]
+const statusOptions: Select[] = [
+  { value: '0', label: '全部' },
+  { value: '1', label: '未开始' },
+  { value: '2', label: '进行中' },
+  { value: '3', label: '已完成' },
+  { value: '4', label: '未复习' },
+  { value: '5', label: '复习中' },
+]
+const typeOptions: Select[] = [
+  { value: '0', label: '全部' },
+  { value: '1', label: '测验' },
+  { value: '2', label: '练习题' },
+  { value: '3', label: '考试' },
+  { value: '4', label: '讲义' },
+  { value: '5', label: '其他' },
+]
+
+// Computed maps for faster label lookup
+const authorLabelMap = computed(() => Object.fromEntries(authorOptions.map(opt => [opt.value, opt.label])))
+const subjectLabelMap = computed(() => Object.fromEntries(subjectOptions.map(opt => [opt.value, opt.label])))
+const typeLabelMap = computed(() => Object.fromEntries(typeOptions.map(opt => [opt.value, opt.label])))
+const statusLabelMap = computed(() => Object.fromEntries(statusOptions.map(opt => [opt.value, opt.label])))
+
+const getAuthorClass = (author: string) => {
+  return {
+    '1': 'text-primary',
+    '2': 'text-secondary',
+    '3': 'text-info',
+  }[author] || ''
+}
+
+const getStatusClass = (status: string) => {
+  return {
+    '1': 'text-error',
+    '4': 'text-error',
+    '2': 'text-primary',
+    '5': 'text-primary',
+    '3': 'text-info',
+  }[status] || ''
+}
+
+
+const my_modal_dialog = ref<HTMLDialogElement | null>(null)
+const pdf_dialog = ref<HTMLDialogElement | null>(null)
+const pdf_url = ref('')
+
+const dialogData = reactive<Paper>({
+  id: undefined,
+  subject: '',
+  grade: '',
+  type: '',
+  status: '',
+  author: '',
+  title: '',
+  path: '',
+  memo: '',
+})
 
 const handleOpenDailog = () => {
   const width = document.body.clientWidth + 'px'
@@ -99,147 +99,120 @@ const handleCloseDialog = () => {
   my_modal_dialog.value?.close()
 }
 
+const handleClosePdfDialog = () => {
+  pdf_dialog.value?.close();
+  if (pdf_url.value) {
+    URL.revokeObjectURL(pdf_url.value);
+    pdf_url.value = '';
+  }
+}
+
 const handleCreatePaper = () => {
-  dialog_id_input.value = null
-  dialog_subject_select.value = ''
-  dialog_grade_select.value = ''
-  dialog_title_input.value = ''
-  dialog_path_input.value = ''
-  dialog_memo_input.value = ''
+  Object.assign(dialogData, {
+    id: null,
+    subject: '',
+    grade: '',
+    type: '',
+    status: '',
+    author: '',
+    title: '',
+    path: '',
+    memo: '',
+  })
   handleOpenDailog()
 }
 
-const handleCommit = () => {
-  const paper: Paper = {
-    id: dialog_id_input.value,
-    subject: dialog_subject_select.value,
-    grade: dialog_grade_select.value,
-    type: dialog_type_select.value,
-    status: dialog_status_select.value,
-    author: dialog_author_select.value,
-    title: dialog_title_input.value,
-    path: dialog_path_input.value,
-    memo: dialog_memo_input.value,
-  }
-
-  if (paper.id != null) {
-    api.put(api_path, paper).then(() => {
-      tableData.value = tableData.value.map((item) => {
-        if (item.id === paper.id) {
-          return paper
-        }
-        return item
-      })
-      handleCloseDialog()
-    })
+const handleCommit = async () => {
+  if (dialogData.id != null) {
+    await api.put(api_path, dialogData)
+    const index = tableData.value.findIndex(item => item.id === dialogData.id)
+    if (index !== -1) {
+      tableData.value[index] = { ...dialogData }
+    }
   } else {
-    api
-      .post(api_path, paper)
-      .then(() => {
-        handleCloseDialog()
-        handleSearch()
-      })
-      .catch((err) => {
-        console.log(err)
-      })
+    await api.post(api_path, dialogData)
+    await handleSearch()
   }
+  handleCloseDialog()
 }
 
 const handleOpenPaper = async (paper: Paper) => {
-
-  await api.get('/pdf',{
-    params:{
-      filename: paper.path
-    },
-    responseType: 'blob',
-    headers: {
-      'Accept': 'application/pdf'
+  try {
+    const res = await api.get('/pdf', {
+      params: { filename: paper.path },
+      responseType: 'blob',
+      headers: { 'Accept': 'application/pdf' }
+    })
+    const blob = new Blob([res.data], { type: 'application/pdf' });
+    if (pdf_url.value) {
+      URL.revokeObjectURL(pdf_url.value);
     }
-  }).then(res => {
-      const blob = new Blob([res.data], { type: 'application/pdf' });
-      const pdfUrl = URL.createObjectURL(blob);
-
-      const el = document.createElement('a')
-      el.href = pdfUrl
-      // el.target = '_blank'
-      el.click()
-
-
-      // window.open(pdfUrl,'_blank')
-  })
+    pdf_url.value = URL.createObjectURL(blob);
+    pdf_dialog.value?.showModal();
+  } catch (err) {
+    error.value = err as string;
+  }
 }
 
 const handleUpdate = (paper: Paper) => {
-  dialog_id_input.value = paper.id
-  dialog_subject_select.value = paper.subject
-  dialog_grade_select.value = paper.grade
-  dialog_title_input.value = paper.title
-  dialog_path_input.value = paper.path
-  dialog_memo_input.value = paper.memo!
-  dialog_status_select.value = paper.status
-  dialog_type_select.value = paper.type
-  dialog_author_select.value = paper.author
+  Object.assign(dialogData, paper)
   handleOpenDailog()
 }
 
 const handleDelete = async (id: number | undefined) => {
-  if (!confirm('确定删除吗？')) return
-  if (id === undefined) return
-  await api.delete(`${api_path}${id}/`).then((res) => {
+  if (!confirm('确定删除吗？') || id === undefined) return
+  try {
+    const res = await api.delete(`${api_path}${id}/`)
     if (res.data.status == '200') {
       tableData.value = tableData.value.filter((paper) => paper.id !== id)
     }
-  })
+  } catch (err) {
+    error.value = err as string;
+  }
 }
 
 const tableData = ref<Paper[]>([])
 const nullText = ref('')
-const error = ref('')
+const error = ref<string | unknown>('')
 const handleSearch = async () => {
-  await api
-    .get(api_path, {
+  try {
+    const res = await api.get(api_path, {
       params: {
+        author: authorSelect.value,
+        type: typeSelect.value,
+        status: statusSelect.value,
         subject: subjectSelect.value,
         grade: gradeSelect.value,
       },
     })
-    .then((res) => {
-      if(res.data?.length === 0) nullText.value = '無資料'
-      tableData.value = res.data
-    })
-    .catch((err) => (error.value = err))
+    tableData.value = res.data
+    if (res.data?.length === 0) nullText.value = '無資料'
+  } catch (err) {
+    error.value = err
+  }
 }
-
-const my_modal_dialog = ref<HTMLDialogElement | null>(null)
-const dialog_id_input = ref()
-const dialog_grade_select = ref('')
-const dialog_subject_select = ref('')
-const dialog_title_input = ref('')
-const dialog_path_input = ref('')
-const dialog_memo_input = ref('')
-const dialog_status_select = ref('')
-const dialog_type_select = ref('')
-const dialog_author_select = ref('')
 
 </script>
 
 <template>
   <div class="flex flex-col">
-    <div class="h-auto flex flex-col md:flex-row md:h-16 items-center justify-start gap-4">
-      <select-component
-        v-model="subjectSelect"
-        class="md:border-none md:shadow-none"
-        :label="'学科'"
-        :options="subjectOptions"
-      ></select-component>
-      <select-component
-        v-model="gradeSelect"
-        class="md:border-none md:shadow-none"
-        :label="'年级'"
-        :options="gradeOptions"
-      ></select-component>
-      <div class="btn btn-primary btn-wide md:ml-auto md:w-24" @click="handleCreatePaper">添加</div>
-      <div class="btn btn-info btn-wide md:w-24" @click="handleSearch">查询</div>
+    <div class="h-auto flex flex-col md:flex-row md:h-8 items-center justify-start gap-4">
+      <select-component v-model="gradeSelect" class="md:border-none md:shadow-none" :label="'年级'"
+        :options="gradeOptions"></select-component>
+      <select-component v-model="authorSelect" class="md:border-none md:shadow-none" :label="'机构'"
+        :options="authorOptions"></select-component>
+      <select-component v-model="subjectSelect" class="md:border-none md:shadow-none" :label="'科目'"
+        :options="subjectOptions"></select-component>
+
+    </div>
+    <div class="h-auto flex flex-col mt-4 md:flex-row md:h-8 items-center justify-start gap-4">
+      <select-component v-model="typeSelect" class="md:border-none md:shadow-none" :label="'类型'"
+        :options="typeOptions"></select-component>
+      <select-component v-model="statusSelect" class="md:border-none md:shadow-none" :label="'状态'"
+        :options="statusOptions"></select-component>
+
+      <div class="btn btn-primary btn-wide md:btn-sm md:ml-auto md:w-24" @click="handleCreatePaper">添加</div>
+      <div class="btn btn-info btn-wide md:btn-sm md:w-24" @click="handleSearch">查询</div>
     </div>
     <div class="divider"></div>
 
@@ -248,10 +221,10 @@ const dialog_author_select = ref('')
         <thead>
           <tr>
             <th class="w-auto md:min-w-64">标题</th>
-            <th class="w-16 hidden md:table-cell">机构</th>
-            <th class="w-16 hidden md:table-cell">科目</th>
-            <th class="w-16 hidden md:table-cell">类型</th>
-            <th class="w-16 hidden md:table-cell">状态</th>
+            <th class="w-24 text-center hidden md:table-cell">机构</th>
+            <th class="w-18 text-center hidden md:table-cell">科目</th>
+            <th class="w-18 text-center hidden md:table-cell">类型</th>
+            <th class="w-18 text-center hidden md:table-cell">状态</th>
             <!-- <th class="w-16 hidden md:table-cell">年级</th> -->
             <th class="w-56 text-center font-bold"></th>
           </tr>
@@ -259,17 +232,21 @@ const dialog_author_select = ref('')
         <tbody>
           <tr v-for="item in tableData" :key="item.id">
             <td>{{ item.title }}</td>
-            <td class="hidden md:table-cell">
-              {{ authorOptions.find((x) => x.value == item.author)?.label }}
+            <td class="hidden text-center md:table-cell">
+              <p :class="getAuthorClass(item.author)">
+                {{ authorLabelMap[item.author] }}
+              </p>
             </td>
-            <td class="hidden md:table-cell">
-              {{ subjectOptions.find((x) => x.value == item.subject)?.label }}
+            <td class="hidden text-center md:table-cell">
+              {{ subjectLabelMap[item.subject] }}
             </td>
-            <td class="hidden md:table-cell">
-              {{ typeOptions.find((x) => x.value == item.type)?.label }}
+            <td class="hidden text-center md:table-cell">
+              {{ typeLabelMap[item.type] }}
             </td>
-            <td class="hidden md:table-cell">
-              {{ statusOptions.find((x) => x.value == item.status)?.label }}
+            <td class="hidden text-center md:table-cell">
+              <p :class="getStatusClass(item.status)">
+                {{ statusLabelMap[item.status] }}
+              </p>
             </td>
             <!-- <td class="hidden md:table-cell">
               {{ gradeOptions.find((x) => x.value == item.grade)?.label }}
@@ -302,58 +279,48 @@ const dialog_author_select = ref('')
         <legend class="fieldset-legend">Paper details</legend>
 
         <label class="label">机构</label>
-        <select-component
-          v-model="dialog_author_select"
-          :options="authorOptions"
-          class="md:w-full"
-          aria-required="true"
-        ></select-component>
+        <select-component v-model="dialogData.author" :options="authorOptions.filter(opt => opt.value !== '0')" class="md:w-full"
+          aria-required="true"></select-component>
 
         <label class="label">学科</label>
-        <select-component
-          v-model="dialog_subject_select"
-          :options="subjectOptions"
-          class="md:w-full"
-          aria-required="true"
-        ></select-component>
+        <select-component v-model="dialogData.subject" :options="subjectOptions" class="md:w-full"
+          aria-required="true"></select-component>
 
         <label class="label">年级</label>
-        <select-component
-          v-model="dialog_grade_select"
-          :options="gradeOptions"
-          class="md:w-full"
-          aria-required="true"
-        ></select-component>
+        <select-component v-model="dialogData.grade" :options="gradeOptions" class="md:w-full"
+          aria-required="true"></select-component>
 
         <label class="label">类型</label>
-        <select-component
-          v-model="dialog_type_select"
-          :options="typeOptions"
-          class="md:w-full"
-          aria-required="true"
-        ></select-component>
+        <select-component v-model="dialogData.type" :options="typeOptions.filter(opt => opt.value !== '0')" class="md:w-full"
+          aria-required="true"></select-component>
 
         <label class="label">状态</label>
-        <select-component
-          v-model="dialog_status_select"
-          :options="statusOptions"
-          class="md:w-full"
-          aria-required="true"
-        ></select-component>
+        <select-component v-model="dialogData.status" :options="statusOptions.filter(opt => opt.value !== '0')" class="md:w-full"
+          aria-required="true"></select-component>
 
         <label class="label">标题</label>
-        <input type="text" v-model="dialog_title_input" class="input md:w-full" placeholder="" />
+        <input type="text" v-model="dialogData.title" class="input md:w-full" placeholder="" />
 
         <label class="label">网盘地址</label>
-        <input type="text" v-model="dialog_path_input" class="input md:w-full" placeholder="" />
+        <input type="text" v-model="dialogData.path" class="input md:w-full" placeholder="" />
 
         <label class="label">备注</label>
-        <input type="text" v-model="dialog_memo_input" class="input md:w-full" placeholder="" />
+        <input type="text" v-model="dialogData.memo" class="input md:w-full" placeholder="" />
       </fieldset>
       <div class="modal-action">
-        <div class="btn btn-primary" @click="handleCommit">登录</div>
+        <div class="btn btn-primary" @click="handleCommit">提交</div>
         <div class="btn btn-neutral" @click="handleCloseDialog">关闭</div>
       </div>
     </div>
+  </dialog>
+
+  <dialog ref="pdf_dialog" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl h-5/6 relative p-0">
+        <button @click="handleClosePdfDialog" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10">✕</button>
+        <iframe :src="pdf_url" class="w-full h-full" style="border: none;"></iframe>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button @click="handleClosePdfDialog">close</button>
+    </form>
   </dialog>
 </template>
