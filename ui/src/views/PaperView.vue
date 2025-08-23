@@ -154,6 +154,21 @@ const handleOpenPaper = async (paper: Paper) => {
   }
 }
 
+const handleDownloadPdf = () => {
+  if (!pdf_url.value) return;
+  const a = document.createElement('a');
+  a.href = pdf_url.value;
+  a.download = 'paper.pdf'; // You might want to use a more descriptive name
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+const handleOpenPdfInNewTab = () => {
+  if (!pdf_url.value) return;
+  window.open(pdf_url.value, '_blank');
+}
+
 const handleUpdate = (paper: Paper) => {
   Object.assign(dialogData, paper)
   handleOpenDailog()
@@ -315,12 +330,13 @@ const handleSearch = async () => {
   </dialog>
 
   <dialog ref="pdf_dialog" class="modal">
-    <div class="modal-box w-11/12 max-w-5xl h-5/6 relative p-0">
-        <button @click="handleClosePdfDialog" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10">✕</button>
-        <iframe :src="pdf_url" class="w-full h-full" style="border: none;"></iframe>
+    <div class="modal-box w-11/12 max-w-6xl h-5/6 flex flex-col p-0">
+      <div class="flex items-center justify-end gap-2 p-2 bg-base-200">
+        <button @click="handleDownloadPdf" class="btn btn-sm btn-primary">下载</button>
+        <button @click="handleOpenPdfInNewTab" class="btn btn-sm btn-secondary">新标签打开</button>
+        <button @click="handleClosePdfDialog" class="btn btn-sm btn-warning">关闭</button>
+      </div>
+      <iframe :src="pdf_url" class="w-full flex-grow" style="border: none;"></iframe>
     </div>
-    <form method="dialog" class="modal-backdrop">
-        <button @click="handleClosePdfDialog">close</button>
-    </form>
   </dialog>
 </template>
