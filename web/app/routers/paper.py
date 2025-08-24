@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select, or_
 from app.db import SQLite_DB
-from typing import Optional
-from datetime import datetime
+from typing import Optional, Dict, Any, List
+from datetime import datetime, date
 from pydantic import BaseModel
 
 router = APIRouter(
@@ -15,6 +15,25 @@ class PaperStatusUpdate(BaseModel):
 
 # Define academic types
 ACADEMIC_TYPES = ['1', '2', '3', '4', '5']
+
+DATE_FIELDS = ['next_review_date', 'last_reviewed_at', 'due_date']
+
+def parse_date_fields(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse date fields from string to datetime objects."""
+    for field in DATE_FIELDS:
+        if field in data and isinstance(data[field], str):
+            try:
+                # Handle full ISO 8601 datetime format
+                data[field] = datetime.fromisoformat(data[field])
+            except ValueError:
+                # Handle YYYY-MM-DD date format
+                try:
+                    data[field] = datetime.strptime(data[field], '%Y-%m-%d')
+                except ValueError:
+                    data[field] = None # Or handle error as appropriate
+        elif field in data and data[field] is None:
+            continue # Keep None as is
+    return data
 
 @router.get("/")
 def get_paper(
@@ -64,8 +83,10 @@ def get_paper(
 @router.post("/")
 def create_paper(
     session: SQLite_DB.SessionDep,
-    paper: SQLite_DB.Paper
+    paper_data: Dict[str, Any]
 ) -> SQLite_DB.Paper:
+    cleaned_data = parse_date_fields(paper_data)
+    paper = SQLite_DB.Paper.model_validate(cleaned_data)
     session.add(paper)
     session.commit()
     session.refresh(paper)
@@ -74,14 +95,18 @@ def create_paper(
 @router.put("/")
 def update_paper(
     session: SQLite_DB.SessionDep,
-    paper: SQLite_DB.Paper
+    paper_data: Dict[str, Any]
 ):
-    updateTarget = session.get(SQLite_DB.Paper, paper.id)
+    paper_id = paper_data.get('id')
+    if not paper_id:
+        raise HTTPException(status_code=400, detail="Paper ID is required for update")
+
+    updateTarget = session.get(SQLite_DB.Paper, paper_id)
     if not updateTarget:
         raise HTTPException(status_code=404, detail="Paper not found")
 
-    paper_data = paper.model_dump(exclude_unset=True)
-    for key, value in paper_data.items():
+    cleaned_data = parse_date_fields(paper_data)
+    for key, value in cleaned_data.items():
         setattr(updateTarget, key, value)
     
     session.add(updateTarget)

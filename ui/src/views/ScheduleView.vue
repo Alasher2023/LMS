@@ -219,6 +219,17 @@ const openItemDialog = (paper?: Paper, date?: Date) => {
 const closeItemDialog = () => {
   itemDialog.value?.close()
 }
+
+const getStatusColorClass = (status: string | undefined) => {
+  if (!status) return 'bg-transparent'
+  return {
+    '1': 'bg-gray-400',   // 未开始
+    '2': 'bg-blue-500',   // 进行中
+    '3': 'bg-green-500',  // 已完成
+    '4': 'bg-yellow-500', // 未复习
+    '5': 'bg-blue-500',   // 复习中
+  }[status] || 'bg-gray-400'
+}
 // --- END: Dialog/Modal Handlers ---
 
 onMounted(() => {
@@ -258,16 +269,16 @@ onMounted(() => {
             v-for="event in day.events" 
             :key="event.id"
             @click.stop="openItemDialog(event)"
-            class="text-xs p-1 rounded-md text-white"
+            class="text-xs p-1 rounded-md text-white flex items-center gap-1.5"
             :class="{
               'bg-primary': event.type === '1' || event.type === '2',
               'bg-secondary': event.type === '3',
               'bg-accent': event.type === '4' || event.type === '5',
               'bg-info': event.type === '6',
-              'opacity-50': event.status === '3'
             }"
           >
-            {{ event.title }}
+            <div class="w-2 h-2 rounded-full flex-shrink-0" :class="getStatusColorClass(event.status)"></div>
+            <span class="truncate" :class="{ 'line-through': event.status === '3' }">{{ event.title }}</span>
           </div>
         </div>
       </div>

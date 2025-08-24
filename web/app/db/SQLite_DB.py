@@ -6,6 +6,7 @@ from datetime import datetime
 class Paper(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
     title: str
+    description: Optional[str] = Field(default=None)
     subject: Optional[str] = Field(default=None)
     grade: Optional[str] = Field(default=None)
     author: Optional[str] = Field(default=None)

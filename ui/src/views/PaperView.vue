@@ -52,7 +52,8 @@ const subjectLabelMap = computed(() => Object.fromEntries(subjectOptions.map(opt
 const typeLabelMap = computed(() => Object.fromEntries(typeOptions.map(opt => [opt.value, opt.label])))
 const statusLabelMap = computed(() => Object.fromEntries(statusOptions.map(opt => [opt.value, opt.label])))
 
-const getAuthorClass = (author: string) => {
+const getAuthorClass = (author: string | undefined) => {
+  if (!author) return ''
   return {
     '1': 'text-primary',
     '2': 'text-secondary',
@@ -60,7 +61,8 @@ const getAuthorClass = (author: string) => {
   }[author] || ''
 }
 
-const getStatusClass = (status: string) => {
+const getStatusClass = (status: string | undefined) => {
+  if (!status) return ''
   return {
     '1': 'text-error',
     '4': 'text-error',
@@ -75,17 +77,7 @@ const my_modal_dialog = ref<HTMLDialogElement | null>(null)
 const pdf_dialog = ref<HTMLDialogElement | null>(null)
 const pdf_url = ref('')
 
-const dialogData = reactive<Paper>({
-  id: undefined,
-  subject: '',
-  grade: '',
-  type: '',
-  status: '',
-  author: '',
-  title: '',
-  path: '',
-  memo: '',
-})
+const dialogData = reactive<Partial<Paper>>({})
 
 const handleOpenDailog = () => {
   const width = document.body.clientWidth + 'px'
@@ -251,18 +243,18 @@ const handleSearch = async () => {
             <td>{{ item.title }}</td>
             <td class="hidden text-center md:table-cell">
               <p :class="getAuthorClass(item.author)">
-                {{ authorLabelMap[item.author] }}
+                {{ item.author ? authorLabelMap[item.author] : '' }}
               </p>
             </td>
             <td class="hidden text-center md:table-cell">
-              {{ subjectLabelMap[item.subject] }}
+              {{ item.subject ? subjectLabelMap[item.subject] : '' }}
             </td>
             <td class="hidden text-center md:table-cell">
-              {{ typeLabelMap[item.type] }}
+              {{ item.type ? typeLabelMap[item.type] : '' }}
             </td>
             <td class="hidden text-center md:table-cell">
               <p :class="getStatusClass(item.status)">
-                {{ statusLabelMap[item.status] }}
+                {{ item.status ? statusLabelMap[item.status] : '' }}
               </p>
             </td>
             <!-- <td class="hidden md:table-cell">
