@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.responses import FileResponse
 from app.db import SQLite_DB
-from app.routers import paper
+from app.routers import paper, dashboard
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from sqlmodel import select, Session
@@ -49,6 +49,7 @@ app.add_middleware(
 )
 
 app.include_router(paper.router)
+app.include_router(dashboard.router)
 
 @app.on_event("startup")
 async def startup():
