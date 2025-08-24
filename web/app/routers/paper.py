@@ -17,10 +17,11 @@ def get_paper(
 ) -> list[SQLite_DB.Paper]:
     
     query = select(SQLite_DB.Paper).where(
-        SQLite_DB.Paper.subject == subject,
         SQLite_DB.Paper.grade == grade
     )
-    
+
+    if subject != '0':
+        query = query.where(SQLite_DB.Paper.subject == subject)
     if author != '0':
         query = query.where(SQLite_DB.Paper.author == author)
     if type != '0':

@@ -50,7 +50,7 @@ onMounted(() => {
 <template>
   <div class="drawer mx-auto max-w-[100rem]">
     <input id="my-drawer" ref="drawerToggle" type="checkbox" class="drawer-toggle" />
-    <div class="drawer-content flex flex-col">
+    <div class="drawer-content flex flex-col h-screen">
       <!-- Navbar -->
       <div class="navbar bg-base-300 w-full">
         <div class="flex-none lg:hidden">
@@ -83,7 +83,7 @@ onMounted(() => {
         </div>
       </div>
       <!-- Page content here -->
-      <div class="box-content md:box-border m-4">
+      <div class="flex-1 overflow-y-auto p-4">
         <slot name="PageContent"></slot>
       </div>
     </div>

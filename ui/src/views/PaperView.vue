@@ -15,6 +15,7 @@ const typeSelect = ref('0')
 
 // Static options for select components
 const subjectOptions: Select[] = [
+  { value: '0', label: '全部' },
   { value: '1', label: '国语' },
   { value: '2', label: '算数' },
 ]
@@ -210,7 +211,7 @@ const handleSearch = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col md:h-full">
     <div class="h-auto flex flex-col md:flex-row md:h-8 items-center justify-start gap-4">
       <select-component v-model="gradeSelect" class="md:border-none md:shadow-none" :label="'年级'"
         :options="gradeOptions"></select-component>
@@ -231,8 +232,8 @@ const handleSearch = async () => {
     </div>
     <div class="divider"></div>
 
-    <div v-if="tableData.length > 0" class="overflow-x-auto">
-      <table class="table table-zebra table-xs">
+    <div v-if="tableData.length > 0" class="overflow-auto md:flex-1">
+      <table class="table table-pin-rows table-zebra table-xs">
         <thead>
           <tr>
             <th class="w-auto md:min-w-64">标题</th>
@@ -298,7 +299,7 @@ const handleSearch = async () => {
           aria-required="true"></select-component>
 
         <label class="label">学科</label>
-        <select-component v-model="dialogData.subject" :options="subjectOptions" class="md:w-full"
+        <select-component v-model="dialogData.subject" :options="subjectOptions.filter(opt => opt.value !== '0')" class="md:w-full"
           aria-required="true"></select-component>
 
         <label class="label">年级</label>
