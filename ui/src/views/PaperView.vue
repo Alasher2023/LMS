@@ -199,6 +199,7 @@ const handleSearch = async () => {
         status: statusSelect.value,
         subject: subjectSelect.value,
         grade: gradeSelect.value,
+        academic_only: true,
       },
     })
     tableData.value = res.data

@@ -3,3 +3,4 @@ uvicorn
 SQLModel
 aiosqlite
 alembic
+apscheduler

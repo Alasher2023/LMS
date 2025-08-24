@@ -1,17 +1,22 @@
 from fastapi import Depends
 from sqlmodel import SQLModel, Field, Session, create_engine
 from typing import Annotated, AsyncGenerator, Optional
+from datetime import datetime
 
 class Paper(SQLModel, table=True):
     id: Optional[int] = Field(primary_key=True, default=None)
-    subject: str
-    grade: str
-    author: str | None = None
-    type: str | None = None
-    status: str | None = None
     title: str
-    path: str
-    memo: str | None = None
+    subject: Optional[str] = Field(default=None)
+    grade: Optional[str] = Field(default=None)
+    author: Optional[str] = Field(default=None)
+    type: Optional[str] = Field(default=None)
+    status: Optional[str] = Field(default=None)
+    path: Optional[str] = Field(default=None)
+    memo: Optional[str] = Field(default=None)
+    review_stage: Optional[int] = Field(default=0)
+    next_review_date: Optional[datetime] = Field(default=None)
+    last_reviewed_at: Optional[datetime] = Field(default=None)
+    due_date: Optional[datetime] = Field(default=None)
 
 path = "./app/db/database.db"
 engine = create_engine(f"sqlite:///{path}",echo=True)
