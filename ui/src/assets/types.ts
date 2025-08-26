@@ -16,5 +16,6 @@ export type Paper = {
   review_stage?: number
   next_review_date?: string // Using string because JSON transport will serialize datetimes
   last_reviewed_at?: string
-  due_date?: string
+  start_date?: string
+  end_date?: string
 }

@@ -18,7 +18,7 @@ def get_dashboard_stats(session: SQLite_DB.SessionDep) -> Dict[str, Any]:
 
     # 1. Tasks due today and to review
     tasks_due_today = session.exec(
-        select(SQLite_DB.Paper).where(SQLite_DB.Paper.due_date >= start_of_day, SQLite_DB.Paper.due_date <= end_of_day)
+        select(SQLite_DB.Paper).where(SQLite_DB.Paper.start_date >= start_of_day, SQLite_DB.Paper.start_date <= end_of_day)
     ).all()
     tasks_to_review = session.exec(select(SQLite_DB.Paper).where(SQLite_DB.Paper.status == '4')).all()
 

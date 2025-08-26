@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import select, or_
+from sqlmodel import select, or_, and_
 from app.db import SQLite_DB
 from typing import Optional, Dict, Any, List
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pydantic import BaseModel
 
 router = APIRouter(
@@ -16,15 +16,19 @@ class PaperStatusUpdate(BaseModel):
 # Define academic types
 ACADEMIC_TYPES = ['1', '2', '3', '4', '5']
 
-DATE_FIELDS = ['next_review_date', 'last_reviewed_at', 'due_date']
+DATE_FIELDS = ['next_review_date', 'last_reviewed_at', 'start_date', 'end_date']
 
 def parse_date_fields(data: Dict[str, Any]) -> Dict[str, Any]:
     """Parse date fields from string to datetime objects."""
     for field in DATE_FIELDS:
         if field in data and isinstance(data[field], str):
             try:
-                # Handle full ISO 8601 datetime format
-                data[field] = datetime.fromisoformat(data[field])
+                # Handle full ISO 8601 datetime format with Z
+                if data[field].endswith('Z'):
+                    data[field] = datetime.fromisoformat(data[field].replace('Z', '+00:00'))
+                # Handle full ISO 8601 datetime format without Z
+                else:
+                    data[field] = datetime.fromisoformat(data[field])
             except ValueError:
                 # Handle YYYY-MM-DD date format
                 try:
@@ -67,12 +71,26 @@ def get_paper(
     if start_date and end_date:
         query = query.where(
             or_(
-                (SQLite_DB.Paper.due_date >= start_date),
-                (SQLite_DB.Paper.next_review_date >= start_date)
-            ),
-            or_(
-                (SQLite_DB.Paper.due_date <= end_date),
-                (SQLite_DB.Paper.next_review_date <= end_date)
+                # It's a multi-day event that overlaps the range
+                and_(
+                    SQLite_DB.Paper.start_date != None,
+                    SQLite_DB.Paper.end_date != None,
+                    SQLite_DB.Paper.start_date <= end_date,
+                    SQLite_DB.Paper.end_date >= start_date
+                ),
+                # It's a single-day event that is inside the range
+                and_(
+                    SQLite_DB.Paper.start_date != None,
+                    SQLite_DB.Paper.end_date == None,
+                    SQLite_DB.Paper.start_date >= start_date,
+                    SQLite_DB.Paper.start_date <= end_date
+                ),
+                # It's a review that is inside the range
+                and_(
+                    SQLite_DB.Paper.next_review_date != None,
+                    SQLite_DB.Paper.next_review_date >= start_date,
+                    SQLite_DB.Paper.next_review_date <= end_date
+                )
             )
         )
 

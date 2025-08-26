@@ -17,7 +17,8 @@ class Paper(SQLModel, table=True):
     review_stage: Optional[int] = Field(default=0)
     next_review_date: Optional[datetime] = Field(default=None)
     last_reviewed_at: Optional[datetime] = Field(default=None)
-    due_date: Optional[datetime] = Field(default=None)
+    start_date: Optional[datetime] = Field(default=None)
+    end_date: Optional[datetime] = Field(default=None)
 
 path = "./app/db/database.db"
 engine = create_engine(f"sqlite:///{path}",echo=True)
