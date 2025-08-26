@@ -72,7 +72,7 @@ const filteredPaperLibrary = computed(() => {
   if (!searchQuery.value) {
     return paperLibrary.value
   }
-  return paperLibrary.value.filter(p => 
+  return paperLibrary.value.filter(p =>
     p.title?.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 })
@@ -128,13 +128,13 @@ const getEventsForDate = (date: Date) => {
     if (p.start_date) {
       const startDate = new Date(p.start_date);
       const localStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      
+
       const endDate = p.end_date ? new Date(p.end_date) : startDate;
       const localEndDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
 
       return localDateTimestamp >= localStartDate.getTime() && localDateTimestamp <= localEndDate.getTime();
     }
-    
+
     return false;
   });
 };
@@ -217,10 +217,10 @@ const handleDelete = async (id: number | undefined) => {
 const handleStatusUpdate = async (paper: Paper, newStatus: string) => {
     try {
         await api.put(`${api_path}${paper.id}/status`, { status: newStatus });
-        if (newStatus === '3') { 
+        if (newStatus === '3') {
             if (paper.last_reviewed_at) {
                 await api.post(`${api_path}${paper.id}/review`);
-            } else { 
+            } else {
                 await api.post(`${api_path}${paper.id}/complete`);
             }
         }
@@ -266,7 +266,7 @@ const openItemDialog = (paper?: Paper, date?: Date) => {
     const day = d.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-  
+
   const initialDate = date ? formatDate(date) : formatDate(new Date());
 
   if (paper) {
@@ -322,7 +322,7 @@ onMounted(() => {
 <template>
   <div class="p-4 h-full flex flex-col">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-col gap-4 items-center justify-between mb-4 md:flex-row">
       <h2 class="text-xl font-bold">{{ currentYear }} 年 {{ monthNames[currentMonth] }}</h2>
       <div class="flex items-center gap-2">
         <button class="btn btn-sm btn-outline" @click="prevMonth">上个月</button>
@@ -336,19 +336,19 @@ onMounted(() => {
     <div class="grid grid-cols-7 gap-1 flex-grow">
       <!-- Weekday Headers -->
       <div v-for="day in weekDays" :key="day" class="text-center font-bold p-2 border-b">{{ day }}</div>
-      
+
       <!-- Calendar Days -->
-      <div 
-        v-for="(day, index) in daysInMonth" 
-        :key="index" 
+      <div
+        v-for="(day, index) in daysInMonth"
+        :key="index"
         @click="openDayEventsDialog(day)"
         class="border rounded-lg p-2 flex flex-col cursor-pointer hover:bg-base-200"
         :class="{ 'bg-base-300': !day.isCurrentMonth, 'bg-base-100': day.isCurrentMonth }"
       >
         <span :class="{ 'text-gray-500': !day.isCurrentMonth }">{{ day.date.getDate() }}</span>
         <div class="flex-grow mt-1 space-y-1 overflow-y-auto">
-          <div 
-            v-for="event in day.events" 
+          <div
+            v-for="event in day.events"
             :key="event.id"
             class="text-xs p-1 rounded-md text-white flex items-center gap-1.5"
             :class="{
@@ -413,8 +413,8 @@ onMounted(() => {
       <div class="py-4">
         <p v-if="selectedDay.events.length === 0" class="text-center text-gray-500">该日没有安排。</p>
         <ul v-else class="space-y-2">
-          <li 
-            v-for="event in selectedDay.events" 
+          <li
+            v-for="event in selectedDay.events"
             :key="event.id"
             @click="openItemDialog(event)"
             class="p-2 rounded-md flex items-center gap-2 cursor-pointer hover:bg-base-200"
@@ -436,7 +436,7 @@ onMounted(() => {
   <dialog ref="itemDialog" class="modal">
     <div class="modal-box">
       <h3 class="font-bold text-lg">{{ dialogData.id ? '编辑日程' : '新增日程' }}</h3>
-      
+
       <div class="form-control w-full">
         <label class="label"><span class="label-text">标题*</span></label>
         <input type="text" v-model="dialogData.title" class="input input-bordered w-full" />
