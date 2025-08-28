@@ -79,17 +79,29 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
 
                     # --- Operand Generation ---
                     nums = [0] * num_operands
-                    current_value = random.randint(0, max_number)
+                    current_value = random.randint(1, max_number)
                     nums[0] = current_value
                     for i, op in enumerate(ops):
                         if op == '+':
-                            next_val = random.randint(0, max_number - current_value)
+                            next_val = random.randint(1, max_number - current_value)
                             current_value += next_val
                             nums[i+1] = next_val
                         elif op == '-':
-                            next_val = random.randint(0, current_value)
+                            next_val = random.randint(1, current_value)
                             current_value -= next_val
                             nums[i+1] = next_val
+                        elif op == '*':
+                            next_val = random.randint(1, max_number)
+                            current_value *= next_val
+                            nums[i+1] = next_val
+                        elif op == '/':
+                            # 等式为 a / b = c
+                            # 首先取得c的值，再取得b的值，最后通过c*b获得a
+                            current_value = random.randint(1, max_number)
+                            current_value_b = random.randint(1, max_number)
+                            current_value_a = current_value * current_value_b
+                            nums[i+1] = current_value_b
+                            nums[0] = current_value_a
                     
                     problem_str = str(nums[0])
                     for i, op in enumerate(ops):
@@ -134,6 +146,28 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
                             next_val = random.randint(0, current_value)
                             current_value -= next_val
                             nums[i+1] = next_val
+                        elif op == '*':
+                            next_val = random.randint(1, max_number)
+                            current_value *= next_val
+                            nums[i+1] = next_val
+                        elif op == '/':
+                            # Ensure the result of division is an integer
+                            divisor = random.randint(1, max_number)
+                            # Find a dividend that is a multiple of the divisor
+                            # and also ensures the result is within a reasonable range
+                            # For simplicity, let's make the result (quotient) a small integer
+                            quotient = random.randint(1, max_number)
+                            dividend = divisor * quotient
+                            
+                            # In a / b = c, we have a=dividend, b=divisor, c=quotient
+                            # Let's assume the equation is always a simple one-step operation for now
+                            # as multi-operand division can get complex with missing numbers.
+                            nums[0] = dividend
+                            nums[1] = divisor
+                            current_value = quotient
+                            # This logic is for a single division, might need adjustment for chained operations
+                            # For now, we will assume num_operands is 2 for division in find_missing_number
+                            break # Exit loop after one division operation
                     final_result = current_value
 
                     # 3. Hide one number and build the string
