@@ -72,7 +72,7 @@ const operatorOptions = ref<Select[]>([
 const maxNumberOptions = ref<Select[]>([
   { label: '20以内', value: '20' },
   { label: '50以内', value: '50' },
-  { label: '100以内', value: '100' },
+  { label: '200以内', value: '200' },
 ]);
 
 const numProblemsOptions = ref<Select[]>([
@@ -84,7 +84,7 @@ const numProblemsOptions = ref<Select[]>([
 const numOperandsOptions = ref<Select[]>([
   { label: '2个数字', value: '2' },
   { label: '3个数字', value: '3' },
-  { label: '4个数字', value: '4' },
+  // { label: '4个数字', value: '4' },
 ]);
 
 const opModeOptions = ref<Select[]>([

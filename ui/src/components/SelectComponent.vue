@@ -17,7 +17,7 @@ const modelValue = defineModel<string | undefined>()
     </option>
   </select>
   <label v-else class="select md:select-sm">
-    <span class="label">{{ props.label }}</span>
+    <span :class="{'label min-w-22': props.label && props.label.length >= 3, 'label': props.label && props.label.length < 3}">{{ props.label }}</span>
     <select v-model="modelValue">
       <option v-for="option in props.options" :key="option.value" :value="option.value">
         {{ option.label }}
