@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.responses import FileResponse
 from app.db import SQLite_DB
-from app.routers import paper, dashboard
+from app.routers import paper, dashboard, pdf_generator
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
 from sqlmodel import select, Session
+import time
 
 # Ebbinghaus intervals in days
 review_intervals = [1, 2, 4, 7, 15, 30, 60]
@@ -31,6 +32,26 @@ def review_papers():
         if papers_to_review:
             print(f"Checked for reviews at {datetime.now()}. Found {len(papers_to_review)} papers to review.")
 
+def cleanup_tmp_directory():
+    """
+    Deletes files in the tmp directory that are older than 24 hours.
+    """
+    TMP_DIR = os.path.join(os.path.dirname(__file__), 'app', 'tmp')
+    if not os.path.exists(TMP_DIR):
+        return
+
+    now = time.time()
+    for filename in os.listdir(TMP_DIR):
+        filepath = os.path.join(TMP_DIR, filename)
+        if os.path.isfile(filepath):
+            try:
+                # Check if file is older than 24 hours (86400 seconds)
+                if os.path.getmtime(filepath) < now - 86400:
+                    os.remove(filepath)
+                    print(f"Deleted old temp file: {filename}")
+            except OSError as e:
+                print(f"Error deleting file {filepath}: {e}")
+
 app = FastAPI()
 
 origins = [
@@ -50,6 +71,7 @@ app.add_middleware(
 
 app.include_router(paper.router)
 app.include_router(dashboard.router)
+app.include_router(pdf_generator.router)
 
 @app.on_event("startup")
 async def startup():
@@ -57,6 +79,7 @@ async def startup():
     # Initialize scheduler
     scheduler = BackgroundScheduler()
     scheduler.add_job(review_papers, 'interval', hours=12)
+    scheduler.add_job(cleanup_tmp_directory, 'interval', hours=1)
     scheduler.start()
     print("Scheduler started. The review job will run every 12 hours.")
 

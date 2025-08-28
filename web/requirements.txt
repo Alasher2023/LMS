@@ -4,3 +4,4 @@ SQLModel
 aiosqlite
 alembic
 apscheduler
+fpdf2

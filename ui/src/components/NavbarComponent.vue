@@ -20,10 +20,10 @@ const loadNavbarItems = async () => {
 
   router.options.routes?.forEach((route) => {
     if (route.name && typeof route.name === 'string') {
-      const title = route.name.charAt(0).toUpperCase() + route.name.slice(1)
+      const title = route.meta?.title || route.name.charAt(0).toUpperCase() + route.name.slice(1)
 
       items.push({
-        title: title,
+        title: title as string,
         name: route.name,
       })
     }
@@ -32,8 +32,14 @@ const loadNavbarItems = async () => {
   navbarItems.value = items
 }
 
-const changeTitle = (title: string | undefined | symbol) => {
-  if (typeof title === 'string') return title.charAt(0).toUpperCase() + title.slice(1)
+const changeTitle = (route: any) => {
+  if (route.meta?.title) {
+    return route.meta.title
+  }
+  if (typeof route.name === 'string') {
+    return route.name.charAt(0).toUpperCase() + route.name.slice(1)
+  }
+  return ''
 }
 
 const closeSidebar = () => {
@@ -71,7 +77,7 @@ onMounted(() => {
           </label>
         </div>
         <div class="mx-2 flex-1 px-2">
-          {{ changeTitle(router.currentRoute.value.name) }}
+          {{ changeTitle(router.currentRoute.value) }}
         </div>
         <div class="hidden flex-none lg:block">
           <ul class="menu menu-horizontal">

@@ -206,18 +206,18 @@ const handleSearch = async () => {
 <template>
   <div class="flex flex-col md:h-full">
     <div class="h-auto flex flex-col md:flex-row md:h-8 items-center justify-start gap-4">
-      <select-component v-model="gradeSelect" class="md:border-none md:shadow-none" :label="'年级'"
+      <select-component v-model="gradeSelect" :label="'年级'"
         :options="gradeOptions"></select-component>
-      <select-component v-model="authorSelect" class="md:border-none md:shadow-none" :label="'机构'"
+      <select-component v-model="authorSelect" :label="'机构'"
         :options="authorOptions"></select-component>
-      <select-component v-model="subjectSelect" class="md:border-none md:shadow-none" :label="'科目'"
+      <select-component v-model="subjectSelect" :label="'科目'"
         :options="subjectOptions"></select-component>
 
     </div>
     <div class="h-auto flex flex-col mt-4 md:flex-row md:h-8 items-center justify-start gap-4">
-      <select-component v-model="typeSelect" class="md:border-none md:shadow-none" :label="'类型'"
+      <select-component v-model="typeSelect" :label="'类型'"
         :options="typeOptions"></select-component>
-      <select-component v-model="statusSelect" class="md:border-none md:shadow-none" :label="'状态'"
+      <select-component v-model="statusSelect"  :label="'状态'"
         :options="statusOptions"></select-component>
 
       <div class="btn btn-primary btn-wide md:btn-sm md:ml-auto md:w-24" @click="handleCreatePaper">添加</div>

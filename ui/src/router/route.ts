@@ -16,6 +16,12 @@ const routes: RouteRecordRaw[] = [
     name: 'paper',
     component: () => import('@/views/PaperView.vue'),
   },
+  {
+    path: '/pdf-generator',
+    name: 'pdf-generator',
+    component: () => import('@/views/PdfGeneratorView.vue'),
+    meta: { title: 'PDF Generator' },
+  },
 ]
 
 export default routes
