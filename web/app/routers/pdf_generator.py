@@ -41,11 +41,6 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
     }
     allowed_ops = op_map.get(operators, ['+', '-'])
 
-    if num_operands > 2:
-        allowed_ops = [op for op in allowed_ops if op in ['+', '-']]
-        if not allowed_ops:
-            return ["多运算数模式目前仅支持加减法。"]
-
     sequential_count = 0
     max_sequential = num_problems // 10  # 10% limit
 
@@ -53,124 +48,110 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
         problem_generated = False
         while not problem_generated:
             try:
-                # --- SIMPLE CALCULATION --- 
+                # --- Operator Generation ---
+                ops = []
+                if num_operands > 1:
+                    if op_mode == 'mixed' and num_operands > 2:
+                        while True:
+                            ops = [random.choice(allowed_ops) for _ in range(num_operands - 1)]
+                            is_sequential = len(set(ops)) == 1
+                            if is_sequential:
+                                if sequential_count < max_sequential:
+                                    sequential_count += 1
+                                    break
+                                else:
+                                    continue
+                            else:
+                                break
+                    else:
+                        op = random.choice(allowed_ops)
+                        ops = [op] * (num_operands - 1)
+
+                # --- Operand and Problem Generation ---
                 if problem_type == 'simple_calculation':
                     if num_operands < 2: continue
-
-                    # --- Operator Generation with 10% sequential limit ---
-                    ops = []
-                    if num_operands > 1:
-                        # For mixed mode, ensure not too many sequential problems
-                        if op_mode == 'mixed' and num_operands > 2:
-                            while True:
-                                ops = [random.choice(allowed_ops) for _ in range(num_operands - 1)]
-                                is_sequential = len(set(ops)) == 1
-                                if is_sequential:
-                                    if sequential_count < max_sequential:
-                                        sequential_count += 1
-                                        break # Accept sequential problem
-                                    else:
-                                        continue # Regenerate ops, it's not mixed and we are over limit
-                                else:
-                                    break # Accept mixed problem
-                        else: # sequential mode or num_operands == 2
-                            op = random.choice(allowed_ops)
-                            ops = [op] * (num_operands - 1)
-
-                    # --- Operand Generation ---
+                    
                     nums = [0] * num_operands
+                    calculation_limit = max_number * 10
                     current_value = random.randint(1, max_number)
                     nums[0] = current_value
+
                     for i, op in enumerate(ops):
                         if op == '+':
-                            next_val = random.randint(1, max_number - current_value)
+                            max_add = max(1, calculation_limit - current_value)
+                            next_val = random.randint(1, max_add)
                             current_value += next_val
                             nums[i+1] = next_val
                         elif op == '-':
-                            next_val = random.randint(1, current_value)
+                            next_val = random.randint(1, current_value) if current_value > 0 else 0
                             current_value -= next_val
                             nums[i+1] = next_val
                         elif op == '*':
-                            next_val = random.randint(1, max_number)
+                            if current_value == 0:
+                                next_val = random.randint(1, max_number)
+                            else:
+                                max_multiplier = max(2, calculation_limit // current_value) if current_value > 0 else calculation_limit
+                                next_val = random.randint(1, max_multiplier)
                             current_value *= next_val
                             nums[i+1] = next_val
                         elif op == '/':
-                            # 等式为 a / b = c
-                            # 首先取得c的值，再取得b的值，最后通过c*b获得a
-                            current_value = random.randint(1, max_number)
-                            current_value_b = random.randint(1, max_number)
-                            current_value_a = current_value * current_value_b
-                            nums[i+1] = current_value_b
-                            nums[0] = current_value_a
+                            if current_value == 0:
+                                next_val = random.randint(1, max_number)
+                            else:
+                                divisors = [j for j in range(1, current_value + 1) if current_value % j == 0]
+                                if not divisors:
+                                    continue
+                                next_val = random.choice(divisors)
+                                current_value //= next_val
+                            nums[i+1] = next_val
                     
                     problem_str = str(nums[0])
                     for i, op in enumerate(ops):
-                        problem_str += f" {op} {nums[i+1]}"
+                        if op == '/':
+                            problem_str += f" ÷ {nums[i+1]}"
+                        elif op == '*':
+                            problem_str += f" × {nums[i+1]}"
+                        else:
+                            problem_str += f" {op} {nums[i+1]}"
                     problems.append(f"{problem_str} = ")
                     problem_generated = True
 
-                # --- FIND MISSING NUMBER --- 
                 elif problem_type == 'find_missing_number':
-                    # Generate a full simple problem first, then hide a number
-                    # This robustly creates a valid problem with a guaranteed solution
-                    
-                    # 1. Generate operators (same 10% logic as above)
-                    ops = []
-                    if num_operands > 1:
-                        if op_mode == 'mixed' and num_operands > 2:
-                            while True:
-                                ops = [random.choice(allowed_ops) for _ in range(num_operands - 1)]
-                                is_sequential = len(set(ops)) == 1
-                                if is_sequential:
-                                    if sequential_count < max_sequential:
-                                        sequential_count += 1
-                                        break
-                                    else:
-                                        continue
-                                else:
-                                    break
-                        else:
-                            op = random.choice(allowed_ops)
-                            ops = [op] * (num_operands - 1)
-
-                    # 2. Generate operands and find result
                     nums = [0] * num_operands
+                    calculation_limit = max_number * 10
                     current_value = random.randint(0, max_number)
                     nums[0] = current_value
+
                     for i, op in enumerate(ops):
                         if op == '+':
-                            next_val = random.randint(0, max_number - current_value)
+                            max_add = max(1, calculation_limit - current_value)
+                            next_val = random.randint(0, max_add)
                             current_value += next_val
                             nums[i+1] = next_val
                         elif op == '-':
-                            next_val = random.randint(0, current_value)
+                            next_val = random.randint(0, current_value) if current_value > 0 else 0
                             current_value -= next_val
                             nums[i+1] = next_val
                         elif op == '*':
-                            next_val = random.randint(1, max_number)
+                            if current_value == 0:
+                                next_val = random.randint(1, max_number)
+                            else:
+                                max_multiplier = max(2, calculation_limit // current_value) if current_value > 0 else calculation_limit
+                                next_val = random.randint(1, max_multiplier)
                             current_value *= next_val
                             nums[i+1] = next_val
                         elif op == '/':
-                            # Ensure the result of division is an integer
-                            divisor = random.randint(1, max_number)
-                            # Find a dividend that is a multiple of the divisor
-                            # and also ensures the result is within a reasonable range
-                            # For simplicity, let's make the result (quotient) a small integer
-                            quotient = random.randint(1, max_number)
-                            dividend = divisor * quotient
-                            
-                            # In a / b = c, we have a=dividend, b=divisor, c=quotient
-                            # Let's assume the equation is always a simple one-step operation for now
-                            # as multi-operand division can get complex with missing numbers.
-                            nums[0] = dividend
-                            nums[1] = divisor
-                            current_value = quotient
-                            # This logic is for a single division, might need adjustment for chained operations
-                            # For now, we will assume num_operands is 2 for division in find_missing_number
-                            break # Exit loop after one division operation
+                            if current_value == 0:
+                                next_val = random.randint(1, max_number)
+                            else:
+                                divisors = [j for j in range(1, current_value + 1) if current_value % j == 0]
+                                if not divisors:
+                                    continue
+                                next_val = random.choice(divisors)
+                                current_value //= next_val
+                            nums[i+1] = next_val
                     final_result = current_value
 
-                    # 3. Hide one number and build the string
                     missing_pos = random.randint(0, num_operands - 1)
                     problem_str = ""
                     for i in range(num_operands):
@@ -180,12 +161,16 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
                             problem_str += str(nums[i])
                         
                         if i < len(ops):
-                            problem_str += f" {ops[i]} "
-
+                            if ops[i] == '/':
+                                problem_str += "÷"
+                            elif ops[i] == '*':
+                                problem_str += "×"
+                            else:
+                                problem_str += f" {ops[i]} "
                     problems.append(f"{problem_str} = {final_result}")
                     problem_generated = True
 
-            except (ValueError, ZeroDivisionError):
+            except (ValueError, ZeroDivisionError, OverflowError):
                 continue
 
     return problems
@@ -202,10 +187,10 @@ def generate_pdf(problem_type: str, max_number: int = 20, num_operands: int = 2,
     mode_title_map = {'mixed': "混合运算", 'sequential': "连续运算"}
     
     title_parts = [f"{max_number}以内"]
-    if num_operands > 2 and operators == 'add_subtract':
+    if num_operands > 2:
         title_parts.append(mode_title_map.get(op_mode, ''))
-    else:
-        title_parts.append(op_title_map.get(operators, ''))
+    
+    title_parts.append(op_title_map.get(operators, ''))
     title_parts.append(f"({num_operands}个运算数 {type_title_map.get(problem_type, '')}) ")
     title = " ".join(filter(None, title_parts))
 
