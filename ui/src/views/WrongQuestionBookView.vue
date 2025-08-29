@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import type { Select } from '@/assets/types';
 import SelectComponent from '@/components/SelectComponent.vue';
-import ActivityChart from '@/components/ActivityChart.vue';
+import QuestionTypePieChart from '@/components/QuestionTypePieChart.vue';
 import api from '@/utils/api';
 
 // --- Interfaces ---
@@ -18,6 +18,11 @@ interface WrongQuestion {
   review_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface PieChartData {
+  name: string;
+  value: number;
 }
 
 // --- Template Refs ---
@@ -50,16 +55,15 @@ const filter = reactive({
 
 const wrongQuestions = ref<WrongQuestion[]>([]);
 const selectedQuestions = ref<number[]>([]);
-
-const chartData = ref([
-    { date: '2025-08-25', count: 3 },
-    { date: '2025-08-26', count: 5 },
-    { date: '2025-08-27', count: 2 },
-]);
+const pieChartData = ref<PieChartData[]>([]);
+const chartSubjectFilter = ref('0');
 
 const storagePath = ref('');
 
 const showAddModal = ref(false);
+const showEditModal = ref(false);
+const editingQuestion = ref<WrongQuestion | null>(null);
+
 
 const newQuestion = reactive({
   subject: '',
@@ -87,6 +91,19 @@ const handleFilter = async () => {
   }
 };
 
+const fetchPieChartData = async () => {
+  try {
+    const res = await api.get('/wrong_question_book/stats', {
+      params: {
+        subject: chartSubjectFilter.value,
+      },
+    });
+    pieChartData.value = res.data;
+  } catch (err) {
+    console.error('Failed to fetch chart data:', err);
+  }
+};
+
 const loadStoragePath = async () => {
   try {
     const res = await api.get('/settings/wrong_question_path');
@@ -110,6 +127,48 @@ const saveStoragePath = async () => {
   }
 };
 
+const openEditModal = (question: WrongQuestion) => {
+  const subjectOption = subjectOptions.find(opt => opt.label === question.subject);
+  const difficultyValue = difficultyOptions.find(opt => opt.label === question.difficulty)?.value || question.difficulty;
+
+  editingQuestion.value = JSON.parse(JSON.stringify(question)); // Deep copy to avoid modifying original object
+
+  if (editingQuestion.value) {
+    editingQuestion.value.subject = subjectOption ? subjectOption.value : '';
+    editingQuestion.value.difficulty = difficultyValue;
+    if (editingQuestion.value.review_at) {
+      editingQuestion.value.review_at = editingQuestion.value.review_at.split('T')[0];
+    }
+  }
+  
+  showEditModal.value = true;
+};
+
+const handleUpdateQuestion = async () => {
+  if (!editingQuestion.value) return;
+
+  const { id, subject, chapter, question_type, difficulty, tags, review_at } = editingQuestion.value;
+
+  const payload = {
+    subject,
+    chapter,
+    question_type,
+    difficulty,
+    tags,
+    review_at,
+  };
+
+  try {
+    await api.put(`/wrong_question_book/${id}`, payload);
+    showEditModal.value = false;
+    handleFilter(); // Refresh the list
+    fetchPieChartData(); // Refresh chart
+  } catch (err) {
+    console.error('Failed to update question:', err);
+    alert('更新失败!');
+  }
+};
+
 const handleAddQuestion = async () => {
   const formData = new FormData();
 
@@ -127,13 +186,14 @@ const handleAddQuestion = async () => {
   }
 
   try {
-    await api.post('/wrong_question_book/', formData, {
+    await api.post('/wrong_question_book', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     showAddModal.value = false;
     handleFilter(); // Refresh the list
+    fetchPieChartData(); // Refresh chart
   } catch (err) {
     console.error('Failed to add new question:', err);
     alert('添加失败!');
@@ -147,6 +207,7 @@ const handleDelete = async (id: number) => {
   try {
     await api.delete(`/wrong_question_book/${id}`);
     wrongQuestions.value = wrongQuestions.value.filter(q => q.id !== id);
+    fetchPieChartData(); // Refresh chart
   } catch (err) {
     console.error('Failed to delete question:', err);
     alert('删除失败!');
@@ -196,7 +257,12 @@ const handleGeneratePdf = async () => {
 onMounted(() => {
   handleFilter();
   loadStoragePath();
+  fetchPieChartData();
 });
+
+watch(chartSubjectFilter, fetchPieChartData);
+watch(() => filter.subject, handleFilter);
+watch(() => filter.difficulty, handleFilter);
 
 </script>
 
@@ -269,6 +335,7 @@ onMounted(() => {
             <td class="flex gap-2">
               <button class="btn btn-xs btn-outline btn-info" @click="handleView(item.id, 'question')" :disabled="!item.question_path">查看题目</button>
               <button class="btn btn-xs btn-outline btn-success" @click="handleView(item.id, 'answer')" :disabled="!item.answer_path">查看答案</button>
+              <button class="btn btn-xs btn-outline btn-accent" @click="openEditModal(item)">编辑</button>
               <button class="btn btn-xs btn-outline btn-warning" @click="handleDelete(item.id)">删除</button>
             </td>
           </tr>
@@ -280,9 +347,17 @@ onMounted(() => {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <!-- Stats -->
         <div>
-            <h2 class="text-xl font-bold mb-4">统计分析</h2>
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold">统计分析</h2>
+              <div class="form-control">
+                <select-component v-model="chartSubjectFilter" :options="subjectOptions" />
+              </div>
+            </div>
             <div class="p-4 bg-base-200 rounded-lg h-64">
-                <ActivityChart v-if="chartData.length" :activity-data="chartData" />
+                <QuestionTypePieChart v-if="pieChartData.length" :pie-chart-data="pieChartData" />
+                <div v-else class="flex items-center justify-center h-full">
+                  <p>没有数据显示</p>
+                </div>
             </div>
         </div>
         <!-- Settings -->
@@ -349,6 +424,47 @@ onMounted(() => {
         <div class="modal-action">
           <button class="btn btn-primary" @click="handleAddQuestion">保存</button>
           <button class="btn" @click="showAddModal = false">取消</button>
+        </div>
+      </div>
+    </dialog>
+    
+    <!-- Edit Modal -->
+    <dialog class="modal" :class="{ 'modal-open': showEditModal }">
+      <div class="modal-box w-11/12 max-w-3xl" v-if="editingQuestion">
+        <h3 class="font-bold text-lg">编辑错题</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">学科</span></label>
+                <select-component v-model="editingQuestion.subject" :options="subjectOptions.filter(o => o.value !== '0')" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">章节</span></label>
+                <input type="text" v-model="editingQuestion.chapter" class="input input-bordered input-sm" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">题型</span></label>
+                <input type="text" v-model="editingQuestion.question_type" class="input input-bordered input-sm" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">难度</span></label>
+                <select-component v-model="editingQuestion.difficulty" :options="difficultyOptions.filter(o => o.value !== '0')" />
+            </div>
+        </div>
+
+        <div class="form-control mt-4">
+            <label class="label"><span class="label-text">标签 (逗号分隔)</span></label>
+            <input type="text" v-model="editingQuestion.tags" class="input input-bordered input-sm" />
+        </div>
+
+        <div class="form-control mt-4">
+            <label class="label"><span class="label-text">复习提醒日期</span></label>
+            <input type="date" v-model="editingQuestion.review_at" class="input input-bordered input-sm" />
+        </div>
+
+        <div class="modal-action">
+          <button class="btn btn-primary" @click="handleUpdateQuestion">保存</button>
+          <button class="btn" @click="showEditModal = false">取消</button>
         </div>
       </div>
     </dialog>

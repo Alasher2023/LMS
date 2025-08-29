@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlmodel import select
+from sqlmodel import select, func
 from app.db import SQLite_DB
 from typing import Optional, List
 import shutil
@@ -99,6 +99,43 @@ async def create_wrong_question(
 
     return new_question
 
+class WrongQuestionUpdate(BaseModel):
+    subject: str
+    chapter: Optional[str] = None
+    question_type: Optional[str] = None
+    difficulty: Optional[str] = None
+    tags: Optional[str] = None
+    review_at: Optional[str] = None
+
+@router.put("/{question_id}")
+def update_wrong_question(
+    session: SQLite_DB.SessionDep,
+    question_id: int,
+    question_update: WrongQuestionUpdate,
+):
+    db_question = session.get(SQLite_DB.WrongQuestion, question_id)
+    if not db_question:
+        raise HTTPException(status_code=404, detail="Wrong question not found")
+
+    update_data = question_update.dict(exclude_unset=True)
+    
+    # Handle date conversion before updating
+    if 'review_at' in update_data and update_data['review_at']:
+        try:
+            update_data['review_at'] = datetime.strptime(update_data['review_at'], '%Y-%m-%d')
+        except (ValueError, TypeError):
+            update_data['review_at'] = None
+    elif 'review_at' in update_data:
+        update_data['review_at'] = None
+
+    for key, value in update_data.items():
+        setattr(db_question, key, value)
+
+    session.add(db_question)
+    session.commit()
+    session.refresh(db_question)
+    return db_question
+
 @router.delete("/{question_id}")
 def delete_wrong_question(session: SQLite_DB.SessionDep, question_id: int):
     question = session.get(SQLite_DB.WrongQuestion, question_id)
@@ -179,3 +216,20 @@ def generate_wrong_question_book(session: SQLite_DB.SessionDep, request: Generat
         output_pdf.write(f)
 
     return FileResponse(filepath, media_type='application/pdf', filename="wrong_question_book.pdf")
+
+@router.get("/stats")
+def get_wrong_question_stats(session: SQLite_DB.SessionDep, subject: Optional[str] = None):
+    query = select(
+        SQLite_DB.WrongQuestion.question_type,
+        func.count(SQLite_DB.WrongQuestion.id).label("count")
+    ).group_by(SQLite_DB.WrongQuestion.question_type)
+
+    if subject and subject != '0':
+        query = query.where(SQLite_DB.WrongQuestion.subject == subject)
+
+    results = session.exec(query).all()
+    
+    # Format for chart
+    chart_data = [{"name": item[0] or "未指定", "value": item[1]} for item in results]
+    
+    return chart_data
