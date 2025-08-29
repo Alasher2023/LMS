@@ -20,6 +20,19 @@ class Paper(SQLModel, table=True):
     start_date: Optional[datetime] = Field(default=None)
     end_date: Optional[datetime] = Field(default=None)
 
+class WrongQuestion(SQLModel, table=True):
+    id: Optional[int] = Field(primary_key=True, default=None)
+    subject: str
+    chapter: Optional[str] = Field(default=None)
+    question_type: Optional[str] = Field(default=None)
+    difficulty: Optional[str] = Field(default=None)
+    tags: Optional[str] = Field(default=None)
+    question_path: Optional[str] = Field(default=None)
+    answer_path: Optional[str] = Field(default=None)
+    review_at: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
 path = "./app/db/database.db"
 engine = create_engine(f"sqlite:///{path}",echo=True)
 

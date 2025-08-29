@@ -22,6 +22,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PdfGeneratorView.vue'),
     meta: { title: 'PDF Generator' },
   },
+  {
+    path: '/wrong-question-book',
+    name: 'wrong-question-book',
+    component: () => import('@/views/WrongQuestionBookView.vue'),
+    meta: { title: 'Wrong Question Book' },
+  },
 ]
 
 export default routes
