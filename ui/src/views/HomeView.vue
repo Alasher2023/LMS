@@ -46,6 +46,28 @@ const navigateTo = (path: string) => {
   router.push(path)
 }
 
+const handleDownloadPaper = async (paper: Paper) => {
+  try {
+    const res = await api.get('/pdf', {
+      params: { filename: paper.path },
+      responseType: 'blob',
+      headers: { 'Accept': 'application/pdf' }
+    })
+    const blob = new Blob([res.data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${paper.title || 'paper'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    error.value = 'Failed to download paper.';
+    console.error(err);
+  }
+}
+
 onMounted(() => {
   fetchData()
 })
@@ -60,7 +82,7 @@ onMounted(() => {
       <span>{{ error }}</span>
     </div>
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
+
       <!-- Left Column: Task Lists -->
       <div class="lg:col-span-2 space-y-6">
         <!-- Today's Agenda -->
@@ -89,7 +111,8 @@ onMounted(() => {
               <div class="card-body p-4">
                 <h3 class="card-title text-base">{{ task.title }}</h3>
                  <div class="card-actions justify-end">
-                  <button class="btn btn-sm btn-secondary" @click="navigateTo('/schedule')">开始复习</button>
+                    <button class="btn btn-sm btn-secondary" @click="handleDownloadPaper(task)">开始复习</button>
+                    <button class="btn btn-sm btn-primary" @click="navigateTo('/schedule')">查看</button>
                 </div>
               </div>
             </div>

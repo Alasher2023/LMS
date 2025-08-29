@@ -74,8 +74,6 @@ const getStatusClass = (status: string | undefined) => {
 
 
 const my_modal_dialog = ref<HTMLDialogElement | null>(null)
-const pdf_dialog = ref<HTMLDialogElement | null>(null)
-const pdf_url = ref('')
 
 const dialogData = reactive<Partial<Paper>>({})
 
@@ -90,14 +88,6 @@ const handleCloseDialog = () => {
   document.body.style.width = ''
   document.body.style.overflow = '' // 恢复滚动
   my_modal_dialog.value?.close()
-}
-
-const handleClosePdfDialog = () => {
-  pdf_dialog.value?.close();
-  if (pdf_url.value) {
-    URL.revokeObjectURL(pdf_url.value);
-    pdf_url.value = '';
-  }
 }
 
 const handleCreatePaper = () => {
@@ -129,7 +119,7 @@ const handleCommit = async () => {
   handleCloseDialog()
 }
 
-const handleOpenPaper = async (paper: Paper) => {
+const handleDownloadPaper = async (paper: Paper) => {
   try {
     const res = await api.get('/pdf', {
       params: { filename: paper.path },
@@ -137,29 +127,17 @@ const handleOpenPaper = async (paper: Paper) => {
       headers: { 'Accept': 'application/pdf' }
     })
     const blob = new Blob([res.data], { type: 'application/pdf' });
-    if (pdf_url.value) {
-      URL.revokeObjectURL(pdf_url.value);
-    }
-    pdf_url.value = URL.createObjectURL(blob);
-    pdf_dialog.value?.showModal();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${paper.title || 'paper'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   } catch (err) {
     error.value = err as string;
   }
-}
-
-const handleDownloadPdf = () => {
-  if (!pdf_url.value) return;
-  const a = document.createElement('a');
-  a.href = pdf_url.value;
-  a.download = 'paper.pdf'; // You might want to use a more descriptive name
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-const handleOpenPdfInNewTab = () => {
-  if (!pdf_url.value) return;
-  window.open(pdf_url.value, '_blank');
 }
 
 const handleUpdate = (paper: Paper) => {
@@ -262,8 +240,8 @@ const handleSearch = async () => {
             </td> -->
             <td>
               <div class="flex gap-4 justify-center">
-                <div class="badge badge-primary md:cursor-pointer" @click="handleOpenPaper(item)">
-                  查看
+                <div class="badge badge-primary md:cursor-pointer" @click="handleDownloadPaper(item)">
+                  下载
                 </div>
                 <div class="badge badge-info md:cursor-pointer" @click="handleUpdate(item)">
                   编辑
@@ -323,14 +301,5 @@ const handleSearch = async () => {
     </div>
   </dialog>
 
-  <dialog ref="pdf_dialog" class="modal">
-    <div class="modal-box w-11/12 max-w-6xl h-5/6 flex flex-col p-0">
-      <div class="flex items-center justify-end gap-2 p-2 bg-base-200">
-        <button @click="handleDownloadPdf" class="btn btn-sm btn-primary">下载</button>
-        <button @click="handleOpenPdfInNewTab" class="btn btn-sm btn-secondary">新标签打开</button>
-        <button @click="handleClosePdfDialog" class="btn btn-sm btn-warning">关闭</button>
-      </div>
-      <iframe :src="pdf_url" class="w-full flex-grow" style="border: none;"></iframe>
-    </div>
-  </dialog>
+  
 </template>

@@ -72,7 +72,7 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
                     if num_operands < 2: continue
                     
                     nums = [0] * num_operands
-                    calculation_limit = max_number * 10
+                    calculation_limit = max_number
                     current_value = random.randint(1, max_number)
                     nums[0] = current_value
 
@@ -118,7 +118,7 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
 
                 elif problem_type == 'find_missing_number':
                     nums = [0] * num_operands
-                    calculation_limit = max_number * 10
+                    calculation_limit = max_number
                     current_value = random.randint(0, max_number)
                     nums[0] = current_value
 
