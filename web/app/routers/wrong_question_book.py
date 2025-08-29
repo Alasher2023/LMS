@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlmodel import select
 from app.db import SQLite_DB
 from typing import Optional, List
 import shutil
 import os
 from datetime import datetime
+import uuid
+from pypdf import PdfWriter, PdfReader
 
 # Import settings loader
 from .settings import load_settings
@@ -14,6 +17,9 @@ router = APIRouter(
     tags=["wrong_question_book"],
     prefix="/wrong_question_book",
 )
+
+class GeneratePdfRequest(BaseModel):
+    question_ids: List[int]
 
 @router.get("/")
 def get_wrong_questions(
@@ -125,3 +131,51 @@ def get_wrong_question_file(session: SQLite_DB.SessionDep, question_id: int, typ
         raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(file_path)
+
+@router.post("/generate_pdf")
+def generate_wrong_question_book(session: SQLite_DB.SessionDep, request: GeneratePdfRequest):
+    A4_WIDTH = 595
+    A4_HEIGHT = 842
+    
+    output_pdf = PdfWriter()
+
+    questions_to_process = session.exec(select(SQLite_DB.WrongQuestion).where(SQLite_DB.WrongQuestion.id.in_(request.question_ids))).all()
+
+    # --- Process Questions ---
+    for question in questions_to_process:
+        if not (question.question_path and os.path.exists(question.question_path)):
+            continue
+        
+        try:
+            reader = PdfReader(question.question_path)
+            source_page = reader.pages[0]
+            source_page.scale_to(A4_WIDTH, A4_HEIGHT)
+            output_pdf.add_page(source_page)
+        except Exception as e:
+            print(f"Error processing question file {question.question_path}: {e}")
+
+    # --- Process Answers ---
+    for question in questions_to_process:
+        if not (question.answer_path and os.path.exists(question.answer_path)):
+            continue
+            
+        try:
+            reader = PdfReader(question.answer_path)
+            source_page = reader.pages[0]
+            source_page.scale_to(A4_WIDTH, A4_HEIGHT)
+            output_pdf.add_page(source_page)
+        except Exception as e:
+            print(f"Error processing answer file {question.answer_path}: {e}")
+
+    # --- Save and Return ---
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    TMP_DIR = os.path.join(BASE_DIR, '..', 'tmp')
+    os.makedirs(TMP_DIR, exist_ok=True)
+
+    filename = f"wrong_question_book_{uuid.uuid4()}.pdf"
+    filepath = os.path.join(TMP_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        output_pdf.write(f)
+
+    return FileResponse(filepath, media_type='application/pdf', filename="wrong_question_book.pdf")

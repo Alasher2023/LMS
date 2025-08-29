@@ -6,3 +6,4 @@ alembic
 apscheduler
 fpdf2
 python-multipart
+pypdf

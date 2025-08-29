@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import type { Select } from '@/assets/types';
 import SelectComponent from '@/components/SelectComponent.vue';
 import ActivityChart from '@/components/ActivityChart.vue';
@@ -49,6 +49,7 @@ const filter = reactive({
 });
 
 const wrongQuestions = ref<WrongQuestion[]>([]);
+const selectedQuestions = ref<number[]>([]);
 
 const chartData = ref([
     { date: '2025-08-25', count: 3 },
@@ -67,6 +68,11 @@ const newQuestion = reactive({
   difficulty: '',
   tags: '',
   review_at: '',
+});
+
+// ---
+const isAllSelected = computed(() => {
+  return wrongQuestions.value.length > 0 && selectedQuestions.value.length === wrongQuestions.value.length;
 });
 
 // --- Functions ---
@@ -152,6 +158,40 @@ const handleView = (questionId: number, type: 'question' | 'answer') => {
   window.open(url, '_blank');
 };
 
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedQuestions.value = [];
+  } else {
+    selectedQuestions.value = wrongQuestions.value.map(q => q.id);
+  }
+};
+
+const handleGeneratePdf = async () => {
+  if (selectedQuestions.value.length === 0) {
+    alert('请先选择要生成的错题!');
+    return;
+  }
+  try {
+    const res = await api.post('/wrong_question_book/generate_pdf', {
+      question_ids: selectedQuestions.value,
+    }, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([res.data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wrong_question_book.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Failed to generate PDF:', err);
+    alert('PDF生成失败!');
+  }
+};
+
 // --- Lifecycle Hooks ---
 onMounted(() => {
   handleFilter();
@@ -190,9 +230,14 @@ onMounted(() => {
     </div>
 
     <!-- Actions -->
-    <div class="mb-4 flex justify-between">
-      <button class="btn btn-primary btn-sm" @click="showAddModal = true">录入新错题</button>
-      <button class="btn btn-secondary btn-sm">生成错题本PDF</button>
+    <div class="mb-4 flex justify-between items-center">
+      <div>
+        <button class="btn btn-primary btn-sm" @click="showAddModal = true">录入新错题</button>
+        <button class="btn btn-secondary btn-sm ml-2" @click="handleGeneratePdf" :disabled="selectedQuestions.length === 0">生成错题本PDF</button>
+      </div>
+      <div>
+        <button class="btn btn-ghost btn-sm" @click="toggleSelectAll">{{ isAllSelected ? '全部取消' : '全部选择' }}</button>
+      </div>
     </div>
 
     <!-- Table -->
@@ -200,6 +245,7 @@ onMounted(() => {
       <table class="table table-zebra w-full">
         <thead>
           <tr>
+            <th><input type="checkbox" class="checkbox checkbox-sm" :checked="isAllSelected" @change="toggleSelectAll" /></th>
             <th>学科</th>
             <th>章节</th>
             <th>题型</th>
@@ -211,6 +257,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr v-for="item in wrongQuestions" :key="item.id">
+            <td><input type="checkbox" class="checkbox checkbox-sm" :value="item.id" v-model="selectedQuestions" /></td>
             <td>{{ item.subject }}</td>
             <td>{{ item.chapter }}</td>
             <td>{{ item.question_type }}</td>
