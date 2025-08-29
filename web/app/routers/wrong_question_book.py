@@ -1,7 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlmodel import select
 from app.db import SQLite_DB
 from typing import Optional, List
+import shutil
+import os
+from datetime import datetime
+
+# Import settings loader
+from .settings import load_settings
 
 router = APIRouter(
     tags=["wrong_question_book"],
@@ -29,3 +36,92 @@ def get_wrong_questions(
     wrong_questions = session.exec(query).all()
     
     return wrong_questions
+
+@router.post("/")
+async def create_wrong_question(
+    session: SQLite_DB.SessionDep,
+    subject: str = Form(...),
+    chapter: Optional[str] = Form(None),
+    question_type: Optional[str] = Form(None),
+    difficulty: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    review_at: Optional[str] = Form(None),
+    question_file: Optional[UploadFile] = File(None),
+    answer_file: Optional[UploadFile] = File(None),
+):
+    settings = load_settings()
+    storage_path = settings.get('wrong_question_storage_path')
+
+    if not storage_path or not os.path.isdir(storage_path):
+        raise HTTPException(status_code=400, detail="Storage path is not configured or is not a valid directory.")
+
+    question_file_path = None
+    if question_file:
+        question_filename = f"question_{datetime.now().strftime('%Y%m%d%H%M%S')}_{question_file.filename}"
+        question_file_path = os.path.join(storage_path, question_filename)
+        with open(question_file_path, "wb") as buffer:
+            shutil.copyfileobj(question_file.file, buffer)
+
+    answer_file_path = None
+    if answer_file:
+        answer_filename = f"answer_{datetime.now().strftime('%Y%m%d%H%M%S')}_{answer_file.filename}"
+        answer_file_path = os.path.join(storage_path, answer_filename)
+        with open(answer_file_path, "wb") as buffer:
+            shutil.copyfileobj(answer_file.file, buffer)
+
+    review_at_datetime = None
+    if review_at:
+        try:
+            review_at_datetime = datetime.strptime(review_at, '%Y-%m-%d')
+        except ValueError:
+            pass # Or handle error appropriately
+
+    new_question = SQLite_DB.WrongQuestion(
+        subject=subject,
+        chapter=chapter,
+        question_type=question_type,
+        difficulty=difficulty,
+        tags=tags,
+        review_at=review_at_datetime,
+        question_path=question_file_path,
+        answer_path=answer_file_path,
+    )
+
+    session.add(new_question)
+    session.commit()
+    session.refresh(new_question)
+
+    return new_question
+
+@router.delete("/{question_id}")
+def delete_wrong_question(session: SQLite_DB.SessionDep, question_id: int):
+    question = session.get(SQLite_DB.WrongQuestion, question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Wrong question not found")
+
+    # Delete associated files
+    if question.question_path and os.path.exists(question.question_path):
+        os.remove(question.question_path)
+    if question.answer_path and os.path.exists(question.answer_path):
+        os.remove(question.answer_path)
+
+    session.delete(question)
+    session.commit()
+    return {"message": "Wrong question deleted successfully"}
+
+@router.get("/file/{question_id}")
+def get_wrong_question_file(session: SQLite_DB.SessionDep, question_id: int, type: str = 'question'):
+    question = session.get(SQLite_DB.WrongQuestion, question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Wrong question not found")
+
+    file_path = None
+    if type == 'question':
+        file_path = question.question_path
+    elif type == 'answer':
+        file_path = question.answer_path
+    
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(file_path)

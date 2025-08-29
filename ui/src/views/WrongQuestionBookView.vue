@@ -20,6 +20,10 @@ interface WrongQuestion {
   updated_at: string;
 }
 
+// --- Template Refs ---
+const questionFileInput = ref<HTMLInputElement | null>(null);
+const answerFileInput = ref<HTMLInputElement | null>(null);
+
 // --- Mock data for demonstration ---
 const subjectOptions: Select[] = [
   { value: '0', label: '全部' },
@@ -59,11 +63,9 @@ const showAddModal = ref(false);
 const newQuestion = reactive({
   subject: '',
   chapter: '',
-  type: '',
+  question_type: '',
   difficulty: '',
   tags: '',
-  questionFile: null,
-  answerFile: null,
   review_at: '',
 });
 
@@ -102,9 +104,52 @@ const saveStoragePath = async () => {
   }
 };
 
-const handleAddQuestion = () => {
-  // Logic to save the new question
-  showAddModal.value = false;
+const handleAddQuestion = async () => {
+  const formData = new FormData();
+
+  Object.entries(newQuestion).forEach(([key, value]) => {
+    if (value) {
+      formData.append(key, value as string);
+    }
+  });
+
+  if (questionFileInput.value?.files?.[0]) {
+    formData.append('question_file', questionFileInput.value.files[0]);
+  }
+  if (answerFileInput.value?.files?.[0]) {
+    formData.append('answer_file', answerFileInput.value.files[0]);
+  }
+
+  try {
+    await api.post('/wrong_question_book/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    showAddModal.value = false;
+    handleFilter(); // Refresh the list
+  } catch (err) {
+    console.error('Failed to add new question:', err);
+    alert('添加失败!');
+  }
+};
+
+const handleDelete = async (id: number) => {
+  if (!confirm('确定要删除这个错题吗?')) {
+    return;
+  }
+  try {
+    await api.delete(`/wrong_question_book/${id}`);
+    wrongQuestions.value = wrongQuestions.value.filter(q => q.id !== id);
+  } catch (err) {
+    console.error('Failed to delete question:', err);
+    alert('删除失败!');
+  }
+};
+
+const handleView = (questionId: number, type: 'question' | 'answer') => {
+  const url = `${api.defaults.baseURL}/wrong_question_book/file/${questionId}?type=${type}`;
+  window.open(url, '_blank');
 };
 
 // --- Lifecycle Hooks ---
@@ -175,8 +220,9 @@ onMounted(() => {
             </td>
             <td>{{ item.review_at }}</td>
             <td class="flex gap-2">
-              <button class="btn btn-xs btn-outline btn-info">查看</button>
-              <button class="btn btn-xs btn-outline btn-warning">删除</button>
+              <button class="btn btn-xs btn-outline btn-info" @click="handleView(item.id, 'question')" :disabled="!item.question_path">查看题目</button>
+              <button class="btn btn-xs btn-outline btn-success" @click="handleView(item.id, 'answer')" :disabled="!item.answer_path">查看答案</button>
+              <button class="btn btn-xs btn-outline btn-warning" @click="handleDelete(item.id)">删除</button>
             </td>
           </tr>
         </tbody>
@@ -215,7 +261,7 @@ onMounted(() => {
 
         <div class="form-control">
           <label class="label"><span class="label-text">题目来源 (PDF)</span></label>
-          <input type="file" class="file-input file-input-bordered w-full file-input-sm" />
+          <input type="file" ref="questionFileInput" class="file-input file-input-bordered w-full file-input-sm" />
           <p class="text-xs text-gray-500 mt-1">导入后可进行裁切</p>
         </div>
 
@@ -230,7 +276,7 @@ onMounted(() => {
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">题型</span></label>
-                <input type="text" v-model="newQuestion.type" class="input input-bordered input-sm" />
+                <input type="text" v-model="newQuestion.question_type" class="input input-bordered input-sm" />
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">难度</span></label>
@@ -245,7 +291,7 @@ onMounted(() => {
 
         <div class="form-control mt-4">
           <label class="label"><span class="label-text">解答/答案 (PDF)</span></label>
-          <input type="file" class="file-input file-input-bordered w-full file-input-sm" />
+          <input type="file" ref="answerFileInput" class="file-input file-input-bordered w-full file-input-sm" />
         </div>
 
         <div class="form-control mt-4">

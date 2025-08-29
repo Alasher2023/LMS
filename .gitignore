@@ -37,4 +37,7 @@ lerna-debug.log*
 /web/**/*.pyc
 /web/app/db/database.db
 /web/alembic.ini
-/web/app/tmp
+/web/app/
+
+# wrong_questions
+/wrong_questions/
