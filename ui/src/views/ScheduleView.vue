@@ -175,7 +175,8 @@ const fetchPaperLibrary = async () => {
   try {
     const res = await api.get(api_path, { params: { academic_only: true } })
     // Filter out papers that are already scheduled
-    paperLibrary.value = res.data.filter((p: Paper) => !p.start_date)
+    // paperLibrary.value = res.data.filter((p: Paper) => !p.start_date)
+    paperLibrary.value = res.data.filter((p: Paper) => p.start_date && p.end_date && p.status == '3' || !p.start_date)
   } catch (err) {
     error.value = err
     alert('题库加载失败')

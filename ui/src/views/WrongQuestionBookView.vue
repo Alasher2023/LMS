@@ -79,6 +79,9 @@ const isAllSelected = computed(() => {
   return wrongQuestions.value.length > 0 && selectedQuestions.value.length === wrongQuestions.value.length;
 });
 
+const subjectLabelMap = computed(() => Object.fromEntries(subjectOptions.map(opt => [opt.value, opt.label])));
+const difficultyLabelMap = computed(() => Object.fromEntries(difficultyOptions.map(opt => [opt.value, opt.label])));
+
 // --- Functions ---
 const handleFilter = async () => {
   try {
@@ -128,19 +131,21 @@ const saveStoragePath = async () => {
 };
 
 const openEditModal = (question: WrongQuestion) => {
-  const subjectOption = subjectOptions.find(opt => opt.label === question.subject);
-  const difficultyValue = difficultyOptions.find(opt => opt.label === question.difficulty)?.value || question.difficulty;
+  console.debug(question);
+
+  // const subjectOptionValue = subjectOptions.find(opt => opt.label === question.subject)?.value || question.subject;
+  // const difficultyValue = difficultyOptions.find(opt => opt.label === question.difficulty)?.value || question.difficulty;
 
   editingQuestion.value = JSON.parse(JSON.stringify(question)); // Deep copy to avoid modifying original object
 
   if (editingQuestion.value) {
-    editingQuestion.value.subject = subjectOption ? subjectOption.value : '';
-    editingQuestion.value.difficulty = difficultyValue;
+    editingQuestion.value.subject = subjectOptions.find(opt => opt.label === editingQuestion.value?.subject)?.value || editingQuestion.value?.subject;
+    editingQuestion.value.difficulty = difficultyOptions.find(opt => opt.label === editingQuestion.value?.difficulty)?.value || editingQuestion.value?.difficulty;
     if (editingQuestion.value.review_at) {
       editingQuestion.value.review_at = editingQuestion.value.review_at.split('T')[0];
     }
   }
-  
+
   showEditModal.value = true;
 };
 
@@ -324,10 +329,10 @@ watch(() => filter.difficulty, handleFilter);
         <tbody>
           <tr v-for="item in wrongQuestions" :key="item.id">
             <td><input type="checkbox" class="checkbox checkbox-sm" :value="item.id" v-model="selectedQuestions" /></td>
-            <td>{{ item.subject }}</td>
+            <td>{{ subjectLabelMap[item.subject] || item.subject }}</td>
             <td>{{ item.chapter }}</td>
             <td>{{ item.question_type }}</td>
-            <td>{{ item.difficulty }}</td>
+            <td>{{ item.difficulty && difficultyLabelMap[item.difficulty] || item.difficulty }}</td>
             <td>
               <span v-for="tag in item.tags?.split(',').filter(t => t)" :key="tag" class="badge badge-ghost mr-1">{{ tag }}</span>
             </td>
@@ -378,36 +383,36 @@ watch(() => filter.difficulty, handleFilter);
 
     <!-- Add/Edit Modal -->
     <dialog class="modal" :class="{ 'modal-open': showAddModal }">
-      <div class="modal-box w-11/12 max-w-3xl">
+      <div class="modal-box w-11/12 max-w-4xl">
         <h3 class="font-bold text-lg">录入错题</h3>
 
         <div class="form-control">
           <label class="label"><span class="label-text">题目来源 (PDF)</span></label>
           <input type="file" ref="questionFileInput" class="file-input file-input-bordered w-full file-input-sm" />
-          <p class="text-xs text-gray-500 mt-1">导入后可进行裁切</p>
+          <!-- <p class="text-xs text-gray-500 mt-1">导入后可进行裁切</p> -->
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div class="form-control">
-                <label class="label"><span class="label-text">学科</span></label>
+                <label class="label"><span class="label-text md:mr-2">学科</span></label>
                 <select-component v-model="newQuestion.subject" :options="subjectOptions.filter(o => o.value !== '0')" />
             </div>
             <div class="form-control">
-                <label class="label"><span class="label-text">章节</span></label>
+                <label class="label"><span class="label-text md:mr-2">章节</span></label>
                 <input type="text" v-model="newQuestion.chapter" class="input input-bordered input-sm" />
             </div>
             <div class="form-control">
-                <label class="label"><span class="label-text">题型</span></label>
+                <label class="label"><span class="label-text md:mr-2">题型</span></label>
                 <input type="text" v-model="newQuestion.question_type" class="input input-bordered input-sm" />
             </div>
             <div class="form-control">
-                <label class="label"><span class="label-text">难度</span></label>
+                <label class="label"><span class="label-text md:mr-2">难度</span></label>
                 <select-component v-model="newQuestion.difficulty" :options="difficultyOptions.filter(o => o.value !== '0')" />
             </div>
         </div>
 
         <div class="form-control mt-4">
-            <label class="label"><span class="label-text">标签 (逗号分隔)</span></label>
+            <label class="label"><span class="label-text md:mr-2">标签 (逗号分隔)</span></label>
             <input type="text" v-model="newQuestion.tags" class="input input-bordered input-sm" />
         </div>
 
@@ -427,7 +432,7 @@ watch(() => filter.difficulty, handleFilter);
         </div>
       </div>
     </dialog>
-    
+
     <!-- Edit Modal -->
     <dialog class="modal" :class="{ 'modal-open': showEditModal }">
       <div class="modal-box w-11/12 max-w-3xl" v-if="editingQuestion">
@@ -448,7 +453,7 @@ watch(() => filter.difficulty, handleFilter);
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">难度</span></label>
-                <select-component v-model="editingQuestion.difficulty" :options="difficultyOptions.filter(o => o.value !== '0')" />
+                <select-component v-model="editingQuestion.difficulty as string" :options="difficultyOptions.filter(o => o.value !== '0')" />
             </div>
         </div>
 

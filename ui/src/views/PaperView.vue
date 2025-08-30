@@ -262,42 +262,44 @@ const handleSearch = async () => {
 
   <dialog ref="my_modal_dialog" class="modal modal-bottom md:modal-middle">
     <div class="modal-box">
-      <fieldset class="fieldset border-base-300 rounded-box w-full p-4">
-        <legend class="fieldset-legend">Paper details</legend>
+      <form @submit.prevent="handleCommit">
+        <fieldset class="fieldset border-base-300 rounded-box w-full p-4">
+          <legend class="fieldset-legend">Paper details</legend>
 
-        <label class="label">机构</label>
-        <select-component v-model="dialogData.author" :options="authorOptions.filter(opt => opt.value !== '0')" class="md:w-full"
-          aria-required="true"></select-component>
+          <label class="label">机构</label>
+          <select-component v-model="dialogData.author" :options="authorOptions.filter(opt => opt.value !== '0')" class="md:w-full"
+            required></select-component>
 
-        <label class="label">学科</label>
-        <select-component v-model="dialogData.subject" :options="subjectOptions.filter(opt => opt.value !== '0')" class="md:w-full"
-          aria-required="true"></select-component>
+          <label class="label">学科</label>
+          <select-component v-model="dialogData.subject" :options="subjectOptions.filter(opt => opt.value !== '0')" class="md:w-full"
+            required></select-component>
 
-        <label class="label">年级</label>
-        <select-component v-model="dialogData.grade" :options="gradeOptions" class="md:w-full"
-          aria-required="true"></select-component>
+          <label class="label">年级</label>
+          <select-component v-model="dialogData.grade" :options="gradeOptions" class="md:w-full"
+            required></select-component>
 
-        <label class="label">类型</label>
-        <select-component v-model="dialogData.type" :options="typeOptions.filter(opt => opt.value !== '0')" class="md:w-full"
-          aria-required="true"></select-component>
+          <label class="label">类型</label>
+          <select-component v-model="dialogData.type" :options="typeOptions.filter(opt => opt.value !== '0')" class="md:w-full"
+            required></select-component>
 
-        <label class="label">状态</label>
-        <select-component v-model="dialogData.status" :options="statusOptions.filter(opt => opt.value !== '0')" class="md:w-full"
-          aria-required="true"></select-component>
+          <label class="label">状态</label>
+          <select-component v-model="dialogData.status" :options="statusOptions.filter(opt => opt.value !== '0')" class="md:w-full"
+            required></select-component>
 
-        <label class="label">标题</label>
-        <input type="text" v-model="dialogData.title" class="input md:w-full" placeholder="" />
+          <label class="label">标题</label>
+          <input type="text" v-model="dialogData.title" class="input md:w-full" placeholder="" required />
 
-        <label class="label">网盘地址</label>
-        <input type="text" v-model="dialogData.path" class="input md:w-full" placeholder="" />
+          <label class="label">网盘地址</label>
+          <input type="text" v-model="dialogData.path" class="input md:w-full" placeholder="" />
 
-        <label class="label">备注</label>
-        <input type="text" v-model="dialogData.memo" class="input md:w-full" placeholder="" />
-      </fieldset>
-      <div class="modal-action">
-        <div class="btn btn-primary" @click="handleCommit">提交</div>
-        <div class="btn btn-neutral" @click="handleCloseDialog">关闭</div>
-      </div>
+          <label class="label">备注</label>
+          <input type="text" v-model="dialogData.memo" class="input md:w-full" placeholder="" />
+        </fieldset>
+        <div class="modal-action">
+          <button type="submit" class="btn btn-primary">提交</button>
+          <div class="btn btn-neutral" @click="handleCloseDialog">关闭</div>
+        </div>
+      </form>
     </div>
   </dialog>
 
