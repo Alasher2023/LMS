@@ -32,7 +32,7 @@ class PDF(FPDF):
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
 # --- Problem Generation Logic ---
-def generate_problems(problem_type: str, max_number: int, num_operands: int, operators: str, num_problems: int, op_mode: str):
+def generate_problems(problem_type: str, max_number: int, min_number: int, num_operands: int, operators: str, num_problems: int, op_mode: str):
     problems = []
     op_map = {
         'add_subtract': ['+', '-'],
@@ -40,6 +40,12 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
         'all': ['+', '-', '*', '/']
     }
     allowed_ops = op_map.get(operators, ['+', '-'])
+
+    is_add_subtract_mixed = (op_mode == 'mixed' and operators == 'add_subtract')
+    
+    is_mul_div_mode = (operators in ['multiply_divide', 'all'])
+    single_digit_multiplier_min = 2
+    single_digit_multiplier_max = 9
 
     sequential_count = 0
     max_sequential = num_problems // 10  # 10% limit
@@ -73,36 +79,73 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
                     
                     nums = [0] * num_operands
                     calculation_limit = max_number
-                    current_value = random.randint(1, max_number)
+                    
+                    current_value = random.randint(min_number, max_number)
                     nums[0] = current_value
 
                     for i, op in enumerate(ops):
                         if op == '+':
-                            max_add = max(1, calculation_limit - current_value)
-                            next_val = random.randint(1, max_add)
+                            max_add = calculation_limit - current_value
+                            if max_add < min_number:
+                                raise ValueError("Cannot generate valid '+' operand")
+                            next_val = random.randint(min_number, max_add)
                             current_value += next_val
                             nums[i+1] = next_val
                         elif op == '-':
-                            next_val = random.randint(1, current_value) if current_value > 0 else 0
-                            current_value -= next_val
-                            nums[i+1] = next_val
-                        elif op == '*':
-                            if current_value == 0:
-                                next_val = random.randint(1, max_number)
+                            upper_bound = current_value
+                            if is_add_subtract_mixed:
+                                upper_bound = current_value - 1
+                            
+                            if upper_bound < min_number:
+                                if is_add_subtract_mixed:
+                                    ops[i] = '+'
+                                    max_add = calculation_limit - current_value
+                                    if max_add < min_number:
+                                        raise ValueError("Cannot generate valid '+' operand after switch")
+                                    next_val = random.randint(min_number, max_add)
+                                    current_value += next_val
+                                    nums[i+1] = next_val
+                                else:
+                                    raise ValueError("Cannot generate valid '-' operand")
                             else:
-                                max_multiplier = max(2, calculation_limit // current_value) if current_value > 0 else calculation_limit
-                                next_val = random.randint(1, max_multiplier)
+                                next_val = random.randint(min_number, upper_bound)
+                                current_value -= next_val
+                                nums[i+1] = next_val
+                        elif op == '*':
+                            if is_mul_div_mode:
+                                if current_value == 0:
+                                    next_val = random.randint(single_digit_multiplier_min, single_digit_multiplier_max)
+                                else:
+                                    max_multiplier = calculation_limit // current_value
+                                    upper_bound = min(single_digit_multiplier_max, max_multiplier)
+                                    if upper_bound < single_digit_multiplier_min:
+                                        raise ValueError("Cannot find single-digit multiplier")
+                                    next_val = random.randint(single_digit_multiplier_min, upper_bound)
+                            else:
+                                if current_value == 0:
+                                    next_val = random.randint(1, max_number)
+                                else:
+                                    max_multiplier = max(2, calculation_limit // current_value) if current_value > 0 else calculation_limit
+                                    next_val = random.randint(1, max_multiplier)
                             current_value *= next_val
                             nums[i+1] = next_val
                         elif op == '/':
-                            if current_value == 0:
-                                next_val = random.randint(1, max_number)
-                            else:
-                                divisors = [j for j in range(1, current_value + 1) if current_value % j == 0]
+                            if is_mul_div_mode:
+                                if current_value == 0:
+                                    raise ValueError("Cannot divide zero")
+                                divisors = [j for j in range(single_digit_multiplier_min, single_digit_multiplier_max + 1) if current_value % j == 0]
                                 if not divisors:
-                                    continue
+                                    raise ValueError("No single-digit divisors found")
                                 next_val = random.choice(divisors)
-                                current_value //= next_val
+                            else:
+                                if current_value == 0:
+                                    next_val = random.randint(1, max_number)
+                                else:
+                                    divisors = [j for j in range(1, current_value + 1) if current_value % j == 0]
+                                    if not divisors:
+                                        raise ValueError("No divisors found")
+                                    next_val = random.choice(divisors)
+                            current_value //= next_val
                             nums[i+1] = next_val
                     
                     problem_str = str(nums[0])
@@ -119,36 +162,73 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
                 elif problem_type == 'find_missing_number':
                     nums = [0] * num_operands
                     calculation_limit = max_number
-                    current_value = random.randint(0, max_number)
+                    
+                    current_value = random.randint(min_number, max_number)
                     nums[0] = current_value
 
                     for i, op in enumerate(ops):
                         if op == '+':
-                            max_add = max(1, calculation_limit - current_value)
-                            next_val = random.randint(0, max_add)
+                            max_add = calculation_limit - current_value
+                            if max_add < min_number:
+                                raise ValueError("Cannot generate valid '+' operand")
+                            next_val = random.randint(min_number, max_add)
                             current_value += next_val
                             nums[i+1] = next_val
                         elif op == '-':
-                            next_val = random.randint(0, current_value) if current_value > 0 else 0
-                            current_value -= next_val
-                            nums[i+1] = next_val
-                        elif op == '*':
-                            if current_value == 0:
-                                next_val = random.randint(1, max_number)
+                            upper_bound = current_value
+                            if is_add_subtract_mixed:
+                                upper_bound = current_value - 1
+                            
+                            if upper_bound < min_number:
+                                if is_add_subtract_mixed:
+                                    ops[i] = '+'
+                                    max_add = calculation_limit - current_value
+                                    if max_add < min_number:
+                                        raise ValueError("Cannot generate valid '+' operand after switch")
+                                    next_val = random.randint(min_number, max_add)
+                                    current_value += next_val
+                                    nums[i+1] = next_val
+                                else:
+                                    raise ValueError("Cannot generate valid '-' operand")
                             else:
-                                max_multiplier = max(2, calculation_limit // current_value) if current_value > 0 else calculation_limit
-                                next_val = random.randint(1, max_multiplier)
+                                next_val = random.randint(min_number, upper_bound)
+                                current_value -= next_val
+                                nums[i+1] = next_val
+                        elif op == '*':
+                            if is_mul_div_mode:
+                                if current_value == 0:
+                                    next_val = random.randint(single_digit_multiplier_min, single_digit_multiplier_max)
+                                else:
+                                    max_multiplier = calculation_limit // current_value
+                                    upper_bound = min(single_digit_multiplier_max, max_multiplier)
+                                    if upper_bound < single_digit_multiplier_min:
+                                        raise ValueError("Cannot find single-digit multiplier")
+                                    next_val = random.randint(single_digit_multiplier_min, upper_bound)
+                            else:
+                                if current_value == 0:
+                                    next_val = random.randint(1, max_number)
+                                else:
+                                    max_multiplier = max(2, calculation_limit // current_value) if current_value > 0 else calculation_limit
+                                    next_val = random.randint(1, max_multiplier)
                             current_value *= next_val
                             nums[i+1] = next_val
                         elif op == '/':
-                            if current_value == 0:
-                                next_val = random.randint(1, max_number)
-                            else:
-                                divisors = [j for j in range(1, current_value + 1) if current_value % j == 0]
+                            if is_mul_div_mode:
+                                if current_value == 0:
+                                    raise ValueError("Cannot divide zero")
+                                divisors = [j for j in range(single_digit_multiplier_min, single_digit_multiplier_max + 1) if current_value % j == 0]
                                 if not divisors:
-                                    continue
+                                    raise ValueError("No single-digit divisors found")
                                 next_val = random.choice(divisors)
-                                current_value //= next_val
+                            else:
+                                if current_value == 0:
+                                    next_val = random.randint(1, max_number)
+                                else:
+                                    divisors = [j for j in range(1, current_value + 1) if current_value % j == 0]
+                                    if not divisors:
+                                        raise ValueError("No divisors found")
+                                    next_val = random.choice(divisors)
+                            current_value //= next_val
                             nums[i+1] = next_val
                     final_result = current_value
 
@@ -177,7 +257,7 @@ def generate_problems(problem_type: str, max_number: int, num_operands: int, ope
 
 # --- API Endpoint ---
 @router.get("/api/generate-pdf")
-def generate_pdf(problem_type: str, max_number: int = 20, num_operands: int = 2, operators: str = 'add_subtract', num_problems: int = 50, op_mode: str = 'mixed'):
+def generate_pdf(problem_type: str, max_number: int = 20, min_number: int = 1, num_operands: int = 2, operators: str = 'add_subtract', num_problems: int = 50, op_mode: str = 'mixed'):
     if not os.path.exists(FONT_PATH):
         print(f"WARNING: Font file not found at {FONT_PATH}. Using fallback font.")
 
@@ -187,6 +267,9 @@ def generate_pdf(problem_type: str, max_number: int = 20, num_operands: int = 2,
     mode_title_map = {'mixed': "混合运算", 'sequential': "连续运算"}
     
     title_parts = [f"{max_number}以内"]
+    if min_number > 1:
+        title_parts = [f"{min_number}到{max_number}之间"]
+
     if num_operands > 2:
         title_parts.append(mode_title_map.get(op_mode, ''))
     
@@ -204,7 +287,7 @@ def generate_pdf(problem_type: str, max_number: int = 20, num_operands: int = 2,
     else:
         pdf.set_font('Arial', '', 12)
 
-    problems = generate_problems(problem_type, max_number, num_operands, operators, num_problems, op_mode)
+    problems = generate_problems(problem_type, max_number, min_number, num_operands, operators, num_problems, op_mode)
     
     # --- Layout Problems ---
     col_width = pdf.w / 2.5

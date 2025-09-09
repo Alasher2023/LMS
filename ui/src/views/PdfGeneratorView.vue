@@ -14,6 +14,11 @@
         <SelectComponent label="运算符" :options="operatorOptions" v-model="selectedOperators" />
       </div>
 
+      <!-- Digit Mode Dropdown -->
+      <div class="form-control w-full max-w-xs">
+        <SelectComponent label="数值位数" :options="digitModeOptions" v-model="selectedDigitMode" />
+      </div>
+
       <!-- Max Number Dropdown -->
       <div class="form-control w-full max-w-xs">
         <SelectComponent label="最大数值" :options="maxNumberOptions" v-model="selectedMaxNumber" />
@@ -44,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import SelectComponent from '@/components/SelectComponent.vue';
 import type { Select } from '@/assets/types';
 import api from '@/utils/api';
@@ -52,10 +57,11 @@ import api from '@/utils/api';
 // --- Refs for user selections ---
 const selectedProblemType = ref<string>('simple_calculation');
 const selectedOperators = ref<string>('add_subtract');
-const selectedMaxNumber = ref<string>('20');
+const selectedMaxNumber = ref<string>('50');
 const selectedNumProblems = ref<string>('50');
 const selectedNumOperands = ref<string>('2');
-const selectedOpMode = ref<string>('mixed'); // Default to mixed
+const selectedOpMode = ref<string>('mixed');
+const selectedDigitMode = ref<string>('unlimited');
 
 // --- Options for dropdowns ---
 const problemTypes = ref<Select[]>([
@@ -69,10 +75,18 @@ const operatorOptions = ref<Select[]>([
     { label: '四则运算', value: 'all' },
 ]);
 
+const digitModeOptions = ref<Select[]>([
+  { label: '无限制', value: 'unlimited' },
+  { label: '一位数 (1-9)', value: '1-digit' },
+  { label: '两位数 (10-99)', value: '2-digits' },
+  { label: '三位数 (100-999)', value: '3-digits' },
+]);
+
 const maxNumberOptions = ref<Select[]>([
   { label: '20以内', value: '20' },
   { label: '50以内', value: '50' },
   { label: '200以内', value: '200' },
+  { label: '1000以内', value: '1000' }
 ]);
 
 const numProblemsOptions = ref<Select[]>([
@@ -84,7 +98,7 @@ const numProblemsOptions = ref<Select[]>([
 const numOperandsOptions = ref<Select[]>([
   { label: '2个数字', value: '2' },
   { label: '3个数字', value: '3' },
-  // { label: '4个数字', value: '4' },
+  { label: '4个数字', value: '4' },
 ]);
 
 const opModeOptions = ref<Select[]>([
@@ -92,17 +106,38 @@ const opModeOptions = ref<Select[]>([
     { label: '连续运算', value: 'sequential' },
 ]);
 
+const isMaxNumberDisabled = computed(() => selectedDigitMode.value !== 'unlimited');
+
 // --- PDF Generation Method ---
 const generatePdf = async () => {
   try {
     const params: any = {
       problem_type: selectedProblemType.value,
-      max_number: parseInt(selectedMaxNumber.value, 10),
       num_operands: parseInt(selectedNumOperands.value, 10),
       operators: selectedOperators.value,
       num_problems: parseInt(selectedNumProblems.value, 10),
       op_mode: selectedOpMode.value,
     };
+
+    // Set min/max number based on digit mode
+    switch (selectedDigitMode.value) {
+      case '1-digit':
+        params.min_number = 1;
+        params.max_number = 9;
+        break;
+      case '2-digits':
+        params.min_number = 10;
+        params.max_number = 99;
+        break;
+      case '3-digits':
+        params.min_number = 100;
+        params.max_number = 999;
+        break;
+      default: // unlimited
+        params.min_number = parseInt(selectedMaxNumber.value) >= 100 ? 10 : 1;
+        params.max_number = parseInt(selectedMaxNumber.value, 10);
+        break;
+    }
 
     const response = await api.get('/api/generate-pdf', { params, responseType: 'blob' });
 
